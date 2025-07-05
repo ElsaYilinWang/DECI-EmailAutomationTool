@@ -16,7 +16,7 @@ class EmailApp:
         """
         self.root = root
         self.root.title("Email Automation Tool")
-        self.root.geometry("900x750")
+        self.root.geometry("900x780")
 
         # --- New Outlook UI Styling ---
         self.colors = {
@@ -44,6 +44,7 @@ class EmailApp:
         self.to_emails = []
         self.cc_emails = []
         self.subject = ""
+        self.sender_email = "Detecting..." # Default value
         self.load_data()
 
         # --- UI Setup ---
@@ -52,6 +53,11 @@ class EmailApp:
         
         # --- Cancellation Flag ---
         self.cancel_sending = False
+        
+        # --- Get Sender Email ---
+        # Run in a separate thread to not freeze UI on startup
+        threading.Thread(target=self.get_sender_email, daemon=True).start()
+
 
     def create_widgets(self):
         """
@@ -143,13 +149,22 @@ class EmailApp:
         self.email_body.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
         self.email_body.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
-        # --- Buttons Frame ---
-        button_frame = tk.Frame(main_frame, bg=self.colors['bg'])
-        button_frame.grid(row=3, column=0, columnspan=2, pady=(15,0), sticky="e")
+        # --- Status and Buttons Frame ---
+        bottom_frame = tk.Frame(main_frame, bg=self.colors['bg'])
+        bottom_frame.grid(row=3, column=0, columnspan=2, pady=(15,0), sticky="ew")
+        bottom_frame.grid_columnconfigure(0, weight=1)
 
-        self.create_modern_button(button_frame, "Clear", self.clear_fields, 'secondary').pack(side='left', padx=(0,10))
-        self.create_modern_button(button_frame, "Cancel", self.cancel_send, 'secondary').pack(side='left', padx=(0,10))
-        self.create_modern_button(button_frame, "Send in Batch", self.start_sending_thread, 'primary').pack(side='left')
+        self.sender_label = tk.Label(bottom_frame, text=f"Sending from: {self.sender_email}", 
+                                     font=self.font_normal, bg=self.colors['bg'], 
+                                     fg=self.colors['secondary_text'], anchor='w')
+        self.sender_label.grid(row=0, column=0, sticky='w')
+
+        button_container = tk.Frame(bottom_frame, bg=self.colors['bg'])
+        button_container.grid(row=0, column=1, sticky='e')
+
+        self.create_modern_button(button_container, "Clear", self.clear_fields, 'secondary').pack(side='left', padx=(0,10))
+        self.create_modern_button(button_container, "Cancel", self.cancel_send, 'secondary').pack(side='left', padx=(0,10))
+        self.create_modern_button(button_container, "Send in Batch", self.start_sending_thread, 'primary').pack(side='left')
 
     def create_modern_button(self, parent, text, command, style='primary'):
         """Helper function to create styled buttons with hover effects."""
@@ -172,6 +187,18 @@ class EmailApp:
         button.bind("<Enter>", lambda e, h=hover_color: e.widget.config(bg=h))
         button.bind("<Leave>", lambda e, b=bg_color: e.widget.config(bg=b))
         return button
+
+    def get_sender_email(self):
+        """Detects the default Outlook account email and updates the UI."""
+        try:
+            outlook = win32.Dispatch('outlook.application')
+            # This is a reliable way to get the primary account's SMTP address
+            self.sender_email = outlook.Session.Accounts[0].SmtpAddress
+        except Exception:
+            self.sender_email = "Outlook not running or no account found."
+        
+        # Update the label in the UI
+        self.sender_label.config(text=f"Sending from: {self.sender_email}")
 
     def load_data(self):
         """
@@ -250,17 +277,12 @@ class EmailApp:
             try:
                 mail = outlook.CreateItem(0)
                 
-                # This line is crucial. It triggers Outlook to compose the email in the background,
-                # which automatically adds the default signature to the HTMLBody.
                 mail.GetInspector 
 
-                # Now, read the HTML body which contains the signature.
                 signature = mail.HTMLBody
 
-                # Prepare the user's content, converting newlines to HTML <br> tags.
                 user_content_html = f"<p>{user_content.replace(os.linesep, '<br>')}</p>"
 
-                # Set the final HTML body by prepending the user's content to the signature.
                 mail.To = recipient
                 mail.CC = cc_list
                 mail.Subject = subject_text if subject_text else "No Subject"
