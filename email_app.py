@@ -37,6 +37,10 @@ class EmailApp:
         # --- Main Frames ---
         main_frame = tk.Frame(self.root)
         main_frame.pack(padx=10, pady=10, fill="both", expand=True)
+        # Configure grid weights for resizing
+        main_frame.grid_rowconfigure(1, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_columnconfigure(1, weight=1)
 
         # --- "To" Emails Frame ---
         to_frame = tk.LabelFrame(main_frame, text="Receiver's Email Addresses (To)")
@@ -45,7 +49,7 @@ class EmailApp:
         self.to_entries = []
         for i in range(24):
             entry = tk.Entry(to_frame, width=30)
-            entry.grid(row=i, column=0, padx=5, pady=2)
+            entry.grid(row=i, column=0, padx=5, pady=2, sticky="ew")
             self.to_entries.append(entry)
 
         # --- "CC" Emails Frame ---
@@ -55,15 +59,19 @@ class EmailApp:
         self.cc_entries = []
         for i in range(6):
             entry = tk.Entry(cc_frame, width=30)
-            entry.grid(row=i, column=0, padx=5, pady=2)
+            entry.grid(row=i, column=0, padx=5, pady=2, sticky="ew")
             self.cc_entries.append(entry)
 
         # --- Email Body Frame ---
         body_frame = tk.LabelFrame(main_frame, text="Email Body")
         body_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+        # Configure grid inside body_frame to make the Text widget expand
+        body_frame.grid_rowconfigure(0, weight=1)
+        body_frame.grid_columnconfigure(0, weight=1)
 
         self.email_body = Text(body_frame, height=15, width=80)
-        self.email_body.pack(padx=5, pady=5, fill="both", expand=True)
+        # Use grid instead of pack for consistency and proper layout management
+        self.email_body.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
         # --- Buttons Frame ---
         button_frame = tk.Frame(main_frame)
