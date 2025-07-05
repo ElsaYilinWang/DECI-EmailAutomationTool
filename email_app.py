@@ -15,7 +15,7 @@ class EmailApp:
         """
         self.root = root
         self.root.title("Email Automation Tool")
-        self.root.geometry("800x600")
+        self.root.geometry("800x700") # Increased default height a bit
 
         # --- Data Storage ---
         self.data_file = "email_data.json"
@@ -37,24 +37,42 @@ class EmailApp:
         # --- Main Frames ---
         main_frame = tk.Frame(self.root)
         main_frame.pack(padx=10, pady=10, fill="both", expand=True)
-        # Configure grid weights for resizing
-        main_frame.grid_rowconfigure(1, weight=1)
+
+        # Configure grid weights to prioritize the email body field (row 1)
+        main_frame.grid_rowconfigure(0, weight=1) # Row for email lists
+        main_frame.grid_rowconfigure(1, weight=5) # Row for email body (gets 5x more space)
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
 
-        # --- "To" Emails Frame ---
-        to_frame = tk.LabelFrame(main_frame, text="Receiver's Email Addresses (To)")
-        to_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        # --- "To" Emails Frame (with Scrollbar) ---
+        to_frame_container = tk.LabelFrame(main_frame, text="Receiver's Email Addresses (To)")
+        to_frame_container.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        to_frame_container.grid_rowconfigure(0, weight=1)
+        to_frame_container.grid_columnconfigure(0, weight=1)
+
+        to_canvas = tk.Canvas(to_frame_container, borderwidth=0)
+        to_scrollbar = tk.Scrollbar(to_frame_container, orient="vertical", command=to_canvas.yview)
+        to_scrollable_frame = tk.Frame(to_canvas)
+
+        to_scrollable_frame.bind("<Configure>", lambda e: to_canvas.configure(scrollregion=to_canvas.bbox("all")))
+        
+        to_canvas.create_window((0, 0), window=to_scrollable_frame, anchor="nw")
+        to_canvas.configure(yscrollcommand=to_scrollbar.set)
+        
+        to_canvas.grid(row=0, column=0, sticky="nsew")
+        to_scrollbar.grid(row=0, column=1, sticky="ns")
+        to_scrollable_frame.grid_columnconfigure(0, weight=1)
 
         self.to_entries = []
         for i in range(24):
-            entry = tk.Entry(to_frame, width=30)
-            entry.grid(row=i, column=0, padx=5, pady=2, sticky="ew")
+            entry = tk.Entry(to_scrollable_frame, width=30)
+            entry.grid(row=i, column=0, padx=(5,10), pady=2, sticky="ew")
             self.to_entries.append(entry)
 
         # --- "CC" Emails Frame ---
         cc_frame = tk.LabelFrame(main_frame, text="CC Email Addresses")
-        cc_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        cc_frame.grid(row=0, column=1, padx=5, pady=5, sticky="new")
+        cc_frame.grid_columnconfigure(0, weight=1)
 
         self.cc_entries = []
         for i in range(6):
@@ -65,12 +83,10 @@ class EmailApp:
         # --- Email Body Frame ---
         body_frame = tk.LabelFrame(main_frame, text="Email Body")
         body_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
-        # Configure grid inside body_frame to make the Text widget expand
         body_frame.grid_rowconfigure(0, weight=1)
         body_frame.grid_columnconfigure(0, weight=1)
 
-        self.email_body = Text(body_frame, height=15, width=80)
-        # Use grid instead of pack for consistency and proper layout management
+        self.email_body = Text(body_frame, width=80) # Removed fixed height
         self.email_body.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
         # --- Buttons Frame ---
@@ -92,9 +108,15 @@ class EmailApp:
         """
         if os.path.exists(self.data_file):
             with open(self.data_file, 'r') as f:
-                data = json.load(f)
-                self.to_emails = data.get("to_emails", [])
-                self.cc_emails = data.get("cc_emails", [])
+                try:
+                    data = json.load(f)
+                    self.to_emails = data.get("to_emails", [])
+                    self.cc_emails = data.get("cc_emails", [])
+                except json.JSONDecodeError:
+                    # Handle case where file is empty or corrupted
+                    self.to_emails = []
+                    self.cc_emails = []
+
 
     def save_data(self):
         """
@@ -105,7 +127,7 @@ class EmailApp:
             "cc_emails": [entry.get() for entry in self.cc_entries]
         }
         with open(self.data_file, 'w') as f:
-            json.dump(data, f)
+            json.dump(data, f, indent=4)
 
     def populate_fields(self):
         """
@@ -137,7 +159,7 @@ class EmailApp:
         try:
             outlook = win32.Dispatch('outlook.application')
         except Exception as e:
-            messagebox.showerror("Outlook Error", "Microsoft Outlook is not running or could not be started.")
+            messagebox.showerror("Outlook Error", f"Microsoft Outlook is not running or could not be started.\nError: {e}")
             return
 
         to_list = [entry.get() for entry in self.to_entries if entry.get()]
@@ -176,14 +198,22 @@ class EmailApp:
         """
         Clears all input fields in the application.
         """
-        for entry in self.to_entries:
-            entry.delete(0, 'end')
-        for entry in self.cc_entries:
-            entry.delete(0, 'end')
-        self.email_body.delete("1.0", 'end')
-        self.save_data() # Save the cleared fields
+        if messagebox.askokcancel("Confirm Clear", "Are you sure you want to clear all fields?"):
+            for entry in self.to_entries:
+                entry.delete(0, 'end')
+            for entry in self.cc_entries:
+                entry.delete(0, 'end')
+            self.email_body.delete("1.0", 'end')
+            self.save_data() # Save the cleared fields
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = EmailApp(root)
     root.mainloop()
+
+# This code is a simple email automation tool that allows users to send batch emails using Microsoft Outlook.
+# It features a user-friendly interface with fields for recipient emails, CC emails, and the email body.
+# The application saves the email addresses to a JSON file and allows users to clear fields, cancel sending, and send emails in a separate thread to keep the UI responsive.
+# The email body field has been updated to allow for more flexible input, and the UI has been adjusted to prioritize the email body field for better usability.
+# The application also handles errors gracefully, providing feedback to the user if Outlook is not running or if there are issues sending emails.
+# The code is structured to be easily maintainable and extendable for future features.  
