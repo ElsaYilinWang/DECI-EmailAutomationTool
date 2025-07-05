@@ -1,4 +1,4 @@
-Here are the software application requirements for my email automation tool.
+Here are the software application requirements for your email automation tool.
 
 ### **Software Requirements Specification: Email Automation Tool**
 
