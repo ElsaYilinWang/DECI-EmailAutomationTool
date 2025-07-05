@@ -7,7 +7,8 @@ import os
 
 class EmailApp:
     """
-    A desktop application for sending batch emails via Microsoft Outlook.
+    A desktop application for sending batch emails via Microsoft Outlook,
+    styled to resemble the new Outlook interface.
     """
     def __init__(self, root):
         """
@@ -15,22 +16,28 @@ class EmailApp:
         """
         self.root = root
         self.root.title("Email Automation Tool")
-        self.root.geometry("850x750")
+        self.root.geometry("900x750")
 
-        # --- Modern UI Styling ---
+        # --- New Outlook UI Styling ---
         self.colors = {
-            'bg': '#2B2B2B',
-            'frame_bg': '#3C3C3C',
-            'text': '#E0E0E0',
-            'button_bg': '#007ACC',
+            'bg': '#F5F5F5',
+            'frame_bg': '#FFFFFF',
+            'text': '#242424',
+            'secondary_text': '#605E5C',
+            'button_bg': '#0078D4',
             'button_fg': '#FFFFFF',
-            'button_hover': '#005F9E',
-            'entry_bg': '#505050',
-            'border': '#555555'
+            'button_hover': '#106EBE',
+            'button_secondary_bg': '#FFFFFF',
+            'button_secondary_fg': '#242424',
+            'button_secondary_hover': '#F0F0F0',
+            'entry_bg': '#FFFFFF',
+            'border': '#C8C6C4',
+            'border_focus': '#0078D4'
         }
         self.root.configure(bg=self.colors['bg'])
         self.font_normal = font.Font(family="Segoe UI", size=10)
         self.font_bold = font.Font(family="Segoe UI", size=11, weight="bold")
+        self.font_title = font.Font(family="Segoe UI Semibold", size=12)
 
         # --- Data Storage ---
         self.data_file = "email_data.json"
@@ -51,7 +58,7 @@ class EmailApp:
         """
         # --- Main Frames ---
         main_frame = tk.Frame(self.root, bg=self.colors['bg'])
-        main_frame.pack(padx=15, pady=15, fill="both", expand=True)
+        main_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
         main_frame.grid_rowconfigure(0, weight=1) 
         main_frame.grid_rowconfigure(1, weight=5) 
@@ -59,10 +66,10 @@ class EmailApp:
         main_frame.grid_columnconfigure(1, weight=1)
 
         # --- "To" Emails Frame (with Scrollbar) ---
-        to_frame_container = tk.LabelFrame(main_frame, text="Receiver's Email Addresses (To)", 
-                                           bg=self.colors['frame_bg'], fg=self.colors['text'], 
-                                           font=self.font_bold, relief='flat', borderwidth=0)
-        to_frame_container.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        to_frame_container = tk.LabelFrame(main_frame, text="To", 
+                                           bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
+                                           font=self.font_title, relief='flat', borderwidth=0)
+        to_frame_container.grid(row=0, column=0, padx=(0, 10), pady=5, sticky="nsew")
         to_frame_container.grid_rowconfigure(0, weight=1)
         to_frame_container.grid_columnconfigure(0, weight=1)
 
@@ -84,58 +91,70 @@ class EmailApp:
         self.to_entries = []
         for i in range(24):
             entry = tk.Entry(to_scrollable_frame, width=30, bg=self.colors['entry_bg'], fg=self.colors['text'],
-                             relief='flat', font=self.font_normal, insertbackground=self.colors['text'],
-                             highlightthickness=1, highlightbackground=self.colors['border'])
+                             relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
+                             borderwidth=1, highlightthickness=1)
+            entry.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
             entry.grid(row=i, column=0, padx=(10,15), pady=3, sticky="ew")
             self.to_entries.append(entry)
 
         # --- "CC" Emails Frame ---
-        cc_frame = tk.LabelFrame(main_frame, text="CC Email Addresses", 
-                                 bg=self.colors['frame_bg'], fg=self.colors['text'], 
-                                 font=self.font_bold, relief='flat', borderwidth=0)
-        cc_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        cc_frame = tk.LabelFrame(main_frame, text="Cc", 
+                                 bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
+                                 font=self.font_title, relief='flat', borderwidth=0)
+        cc_frame.grid(row=0, column=1, padx=(10, 0), pady=5, sticky="nsew")
         cc_frame.grid_columnconfigure(0, weight=1)
 
         self.cc_entries = []
         for i in range(6):
             entry = tk.Entry(cc_frame, width=30, bg=self.colors['entry_bg'], fg=self.colors['text'],
-                             relief='flat', font=self.font_normal, insertbackground=self.colors['text'],
-                             highlightthickness=1, highlightbackground=self.colors['border'])
+                             relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
+                             borderwidth=1, highlightthickness=1)
+            entry.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
             entry.grid(row=i, column=0, padx=10, pady=3, sticky="ew")
             self.cc_entries.append(entry)
 
         # --- Email Body Frame ---
-        body_frame = tk.LabelFrame(main_frame, text="Email Body", 
-                                   bg=self.colors['frame_bg'], fg=self.colors['text'], 
-                                   font=self.font_bold, relief='flat', borderwidth=0)
-        body_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+        body_frame = tk.LabelFrame(main_frame, text="Message", 
+                                   bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
+                                   font=self.font_title, relief='flat', borderwidth=0)
+        body_frame.grid(row=1, column=0, columnspan=2, pady=10, sticky="nsew")
         body_frame.grid_rowconfigure(0, weight=1)
         body_frame.grid_columnconfigure(0, weight=1)
 
         self.email_body = Text(body_frame, width=80, bg=self.colors['entry_bg'], fg=self.colors['text'],
-                               relief='flat', font=self.font_normal, insertbackground=self.colors['text'],
-                               highlightthickness=1, highlightbackground=self.colors['border'], wrap='word')
+                               relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
+                               borderwidth=1, highlightthickness=1, wrap='word', padx=5, pady=5)
+        self.email_body.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
         self.email_body.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         # --- Buttons Frame ---
         button_frame = tk.Frame(main_frame, bg=self.colors['bg'])
-        button_frame.grid(row=2, column=0, columnspan=2, pady=15)
+        button_frame.grid(row=2, column=0, columnspan=2, pady=(15,0), sticky="e")
 
-        self.create_modern_button(button_frame, "Send in Batch", self.start_sending_thread).grid(row=0, column=0, padx=10)
-        self.create_modern_button(button_frame, "Cancel", self.cancel_send).grid(row=0, column=1, padx=10)
-        self.create_modern_button(button_frame, "Clear", self.clear_fields).grid(row=0, column=2, padx=10)
+        self.create_modern_button(button_frame, "Clear", self.clear_fields, 'secondary').pack(side='left', padx=(0,10))
+        self.create_modern_button(button_frame, "Cancel", self.cancel_send, 'secondary').pack(side='left', padx=(0,10))
+        self.create_modern_button(button_frame, "Send in Batch", self.start_sending_thread, 'primary').pack(side='left')
 
-    def create_modern_button(self, parent, text, command):
+    def create_modern_button(self, parent, text, command, style='primary'):
         """Helper function to create styled buttons with hover effects."""
+        if style == 'primary':
+            bg_color = self.colors['button_bg']
+            fg_color = self.colors['button_fg']
+            hover_color = self.colors['button_hover']
+        else: # secondary
+            bg_color = self.colors['button_secondary_bg']
+            fg_color = self.colors['button_secondary_fg']
+            hover_color = self.colors['button_secondary_hover']
+
         button = tk.Button(parent, text=text, command=command,
-                           bg=self.colors['button_bg'], fg=self.colors['button_fg'],
-                           font=self.font_bold, relief='flat', borderwidth=0,
-                           activebackground=self.colors['button_hover'],
-                           activeforeground=self.colors['button_fg'],
-                           pady=5, padx=10)
+                           bg=bg_color, fg=fg_color,
+                           font=self.font_bold, relief='flat', borderwidth=1,
+                           activebackground=hover_color,
+                           activeforeground=fg_color,
+                           pady=8, padx=15)
         
-        button.bind("<Enter>", lambda e: e.widget.config(bg=self.colors['button_hover']))
-        button.bind("<Leave>", lambda e: e.widget.config(bg=self.colors['button_bg']))
+        button.bind("<Enter>", lambda e, h=hover_color: e.widget.config(bg=h))
+        button.bind("<Leave>", lambda e, b=bg_color: e.widget.config(bg=b))
         return button
 
     def load_data(self):
