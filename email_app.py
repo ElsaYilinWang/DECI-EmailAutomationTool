@@ -43,6 +43,7 @@ class EmailApp:
         self.data_file = "email_data.json"
         self.to_emails = []
         self.cc_emails = []
+        self.subject = ""
         self.load_data()
 
         # --- UI Setup ---
@@ -61,7 +62,8 @@ class EmailApp:
         main_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
         main_frame.grid_rowconfigure(0, weight=1) 
-        main_frame.grid_rowconfigure(1, weight=5) 
+        main_frame.grid_rowconfigure(1, weight=0) # Subject row
+        main_frame.grid_rowconfigure(2, weight=5) # Message row
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
 
@@ -113,11 +115,25 @@ class EmailApp:
             entry.grid(row=i, column=0, padx=10, pady=3, sticky="ew")
             self.cc_entries.append(entry)
 
+        # --- Email Subject Frame ---
+        subject_frame = tk.LabelFrame(main_frame, text="Subject", 
+                                   bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
+                                   font=self.font_title, relief='flat', borderwidth=0)
+        subject_frame.grid(row=1, column=0, columnspan=2, pady=5, sticky="nsew")
+        subject_frame.grid_columnconfigure(0, weight=1)
+
+        self.subject_entry = tk.Entry(subject_frame, bg=self.colors['entry_bg'], fg=self.colors['text'],
+                             relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
+                             borderwidth=1, highlightthickness=1)
+        self.subject_entry.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
+        self.subject_entry.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+
+
         # --- Email Body Frame ---
         body_frame = tk.LabelFrame(main_frame, text="Message", 
                                    bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
                                    font=self.font_title, relief='flat', borderwidth=0)
-        body_frame.grid(row=1, column=0, columnspan=2, pady=10, sticky="nsew")
+        body_frame.grid(row=2, column=0, columnspan=2, pady=10, sticky="nsew")
         body_frame.grid_rowconfigure(0, weight=1)
         body_frame.grid_columnconfigure(0, weight=1)
 
@@ -129,7 +145,7 @@ class EmailApp:
 
         # --- Buttons Frame ---
         button_frame = tk.Frame(main_frame, bg=self.colors['bg'])
-        button_frame.grid(row=2, column=0, columnspan=2, pady=(15,0), sticky="e")
+        button_frame.grid(row=3, column=0, columnspan=2, pady=(15,0), sticky="e")
 
         self.create_modern_button(button_frame, "Clear", self.clear_fields, 'secondary').pack(side='left', padx=(0,10))
         self.create_modern_button(button_frame, "Cancel", self.cancel_send, 'secondary').pack(side='left', padx=(0,10))
@@ -159,7 +175,7 @@ class EmailApp:
 
     def load_data(self):
         """
-        Loads email addresses from the JSON data file.
+        Loads email addresses and subject from the JSON data file.
         """
         if os.path.exists(self.data_file):
             with open(self.data_file, 'r') as f:
@@ -167,23 +183,25 @@ class EmailApp:
                     data = json.load(f)
                     self.to_emails = data.get("to_emails", [])
                     self.cc_emails = data.get("cc_emails", [])
+                    self.subject = data.get("subject", "")
                 except json.JSONDecodeError:
-                    self.to_emails, self.cc_emails = [], []
+                    self.to_emails, self.cc_emails, self.subject = [], [], ""
 
     def save_data(self):
         """
-        Saves the current email addresses to the JSON data file.
+        Saves the current email addresses and subject to the JSON data file.
         """
         data = {
             "to_emails": [entry.get() for entry in self.to_entries],
-            "cc_emails": [entry.get() for entry in self.cc_entries]
+            "cc_emails": [entry.get() for entry in self.cc_entries],
+            "subject": self.subject_entry.get()
         }
         with open(self.data_file, 'w') as f:
             json.dump(data, f, indent=4)
 
     def populate_fields(self):
         """
-        Fills the entry fields with the loaded email addresses.
+        Fills the entry fields with the loaded email addresses and subject.
         """
         for i, email in enumerate(self.to_emails):
             if i < len(self.to_entries):
@@ -192,6 +210,8 @@ class EmailApp:
         for i, email in enumerate(self.cc_emails):
             if i < len(self.cc_entries):
                 self.cc_entries[i].insert(0, email)
+        
+        self.subject_entry.insert(0, self.subject)
 
     def start_sending_thread(self):
         """
@@ -215,6 +235,7 @@ class EmailApp:
 
         to_list = [entry.get() for entry in self.to_entries if entry.get()]
         cc_list = ";".join([entry.get() for entry in self.cc_entries if entry.get()])
+        subject_text = self.subject_entry.get()
         email_content = self.email_body.get("1.0", "end-1c")
 
         if not to_list:
@@ -230,7 +251,7 @@ class EmailApp:
                 mail = outlook.CreateItem(0)
                 mail.To = recipient
                 mail.CC = cc_list
-                mail.Subject = "Your Subject Here" 
+                mail.Subject = subject_text if subject_text else "No Subject"
                 mail.Body = email_content
                 mail.Send()
             except Exception as e:
@@ -254,6 +275,7 @@ class EmailApp:
                 entry.delete(0, 'end')
             for entry in self.cc_entries:
                 entry.delete(0, 'end')
+            self.subject_entry.delete(0, 'end')
             self.email_body.delete("1.0", 'end')
             self.save_data()
 
