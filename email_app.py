@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, Text
+from tkinter import messagebox, Text, font
 import json
 import win32com.client as win32
 import threading
@@ -15,7 +15,22 @@ class EmailApp:
         """
         self.root = root
         self.root.title("Email Automation Tool")
-        self.root.geometry("800x700") # Increased default height a bit
+        self.root.geometry("850x750")
+
+        # --- Modern UI Styling ---
+        self.colors = {
+            'bg': '#2B2B2B',
+            'frame_bg': '#3C3C3C',
+            'text': '#E0E0E0',
+            'button_bg': '#007ACC',
+            'button_fg': '#FFFFFF',
+            'button_hover': '#005F9E',
+            'entry_bg': '#505050',
+            'border': '#555555'
+        }
+        self.root.configure(bg=self.colors['bg'])
+        self.font_normal = font.Font(family="Segoe UI", size=10)
+        self.font_bold = font.Font(family="Segoe UI", size=11, weight="bold")
 
         # --- Data Storage ---
         self.data_file = "email_data.json"
@@ -35,24 +50,27 @@ class EmailApp:
         Creates and arranges all the UI components in the main window.
         """
         # --- Main Frames ---
-        main_frame = tk.Frame(self.root)
-        main_frame.pack(padx=10, pady=10, fill="both", expand=True)
+        main_frame = tk.Frame(self.root, bg=self.colors['bg'])
+        main_frame.pack(padx=15, pady=15, fill="both", expand=True)
 
-        # Configure grid weights to prioritize the email body field (row 1)
-        main_frame.grid_rowconfigure(0, weight=1) # Row for email lists
-        main_frame.grid_rowconfigure(1, weight=5) # Row for email body (gets 5x more space)
+        main_frame.grid_rowconfigure(0, weight=1) 
+        main_frame.grid_rowconfigure(1, weight=5) 
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
 
         # --- "To" Emails Frame (with Scrollbar) ---
-        to_frame_container = tk.LabelFrame(main_frame, text="Receiver's Email Addresses (To)")
+        to_frame_container = tk.LabelFrame(main_frame, text="Receiver's Email Addresses (To)", 
+                                           bg=self.colors['frame_bg'], fg=self.colors['text'], 
+                                           font=self.font_bold, relief='flat', borderwidth=0)
         to_frame_container.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         to_frame_container.grid_rowconfigure(0, weight=1)
         to_frame_container.grid_columnconfigure(0, weight=1)
 
-        to_canvas = tk.Canvas(to_frame_container, borderwidth=0)
-        to_scrollbar = tk.Scrollbar(to_frame_container, orient="vertical", command=to_canvas.yview)
-        to_scrollable_frame = tk.Frame(to_canvas)
+        to_canvas = tk.Canvas(to_frame_container, borderwidth=0, bg=self.colors['frame_bg'], highlightthickness=0)
+        to_scrollbar = tk.Scrollbar(to_frame_container, orient="vertical", command=to_canvas.yview, 
+                                    bg=self.colors['frame_bg'], troughcolor=self.colors['bg'], 
+                                    activebackground=self.colors['button_hover'], relief='flat')
+        to_scrollable_frame = tk.Frame(to_canvas, bg=self.colors['frame_bg'])
 
         to_scrollable_frame.bind("<Configure>", lambda e: to_canvas.configure(scrollregion=to_canvas.bbox("all")))
         
@@ -65,42 +83,60 @@ class EmailApp:
 
         self.to_entries = []
         for i in range(24):
-            entry = tk.Entry(to_scrollable_frame, width=30)
-            entry.grid(row=i, column=0, padx=(5,10), pady=2, sticky="ew")
+            entry = tk.Entry(to_scrollable_frame, width=30, bg=self.colors['entry_bg'], fg=self.colors['text'],
+                             relief='flat', font=self.font_normal, insertbackground=self.colors['text'],
+                             highlightthickness=1, highlightbackground=self.colors['border'])
+            entry.grid(row=i, column=0, padx=(10,15), pady=3, sticky="ew")
             self.to_entries.append(entry)
 
         # --- "CC" Emails Frame ---
-        cc_frame = tk.LabelFrame(main_frame, text="CC Email Addresses")
-        cc_frame.grid(row=0, column=1, padx=5, pady=5, sticky="new")
+        cc_frame = tk.LabelFrame(main_frame, text="CC Email Addresses", 
+                                 bg=self.colors['frame_bg'], fg=self.colors['text'], 
+                                 font=self.font_bold, relief='flat', borderwidth=0)
+        cc_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
         cc_frame.grid_columnconfigure(0, weight=1)
 
         self.cc_entries = []
         for i in range(6):
-            entry = tk.Entry(cc_frame, width=30)
-            entry.grid(row=i, column=0, padx=5, pady=2, sticky="ew")
+            entry = tk.Entry(cc_frame, width=30, bg=self.colors['entry_bg'], fg=self.colors['text'],
+                             relief='flat', font=self.font_normal, insertbackground=self.colors['text'],
+                             highlightthickness=1, highlightbackground=self.colors['border'])
+            entry.grid(row=i, column=0, padx=10, pady=3, sticky="ew")
             self.cc_entries.append(entry)
 
         # --- Email Body Frame ---
-        body_frame = tk.LabelFrame(main_frame, text="Email Body")
+        body_frame = tk.LabelFrame(main_frame, text="Email Body", 
+                                   bg=self.colors['frame_bg'], fg=self.colors['text'], 
+                                   font=self.font_bold, relief='flat', borderwidth=0)
         body_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
         body_frame.grid_rowconfigure(0, weight=1)
         body_frame.grid_columnconfigure(0, weight=1)
 
-        self.email_body = Text(body_frame, width=80) # Removed fixed height
-        self.email_body.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.email_body = Text(body_frame, width=80, bg=self.colors['entry_bg'], fg=self.colors['text'],
+                               relief='flat', font=self.font_normal, insertbackground=self.colors['text'],
+                               highlightthickness=1, highlightbackground=self.colors['border'], wrap='word')
+        self.email_body.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         # --- Buttons Frame ---
-        button_frame = tk.Frame(main_frame)
-        button_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        button_frame = tk.Frame(main_frame, bg=self.colors['bg'])
+        button_frame.grid(row=2, column=0, columnspan=2, pady=15)
 
-        send_button = tk.Button(button_frame, text="Send in Batch", command=self.start_sending_thread)
-        send_button.grid(row=0, column=0, padx=10)
+        self.create_modern_button(button_frame, "Send in Batch", self.start_sending_thread).grid(row=0, column=0, padx=10)
+        self.create_modern_button(button_frame, "Cancel", self.cancel_send).grid(row=0, column=1, padx=10)
+        self.create_modern_button(button_frame, "Clear", self.clear_fields).grid(row=0, column=2, padx=10)
 
-        cancel_button = tk.Button(button_frame, text="Cancel", command=self.cancel_send)
-        cancel_button.grid(row=0, column=1, padx=10)
-
-        clear_button = tk.Button(button_frame, text="Clear", command=self.clear_fields)
-        clear_button.grid(row=0, column=2, padx=10)
+    def create_modern_button(self, parent, text, command):
+        """Helper function to create styled buttons with hover effects."""
+        button = tk.Button(parent, text=text, command=command,
+                           bg=self.colors['button_bg'], fg=self.colors['button_fg'],
+                           font=self.font_bold, relief='flat', borderwidth=0,
+                           activebackground=self.colors['button_hover'],
+                           activeforeground=self.colors['button_fg'],
+                           pady=5, padx=10)
+        
+        button.bind("<Enter>", lambda e: e.widget.config(bg=self.colors['button_hover']))
+        button.bind("<Leave>", lambda e: e.widget.config(bg=self.colors['button_bg']))
+        return button
 
     def load_data(self):
         """
@@ -113,10 +149,7 @@ class EmailApp:
                     self.to_emails = data.get("to_emails", [])
                     self.cc_emails = data.get("cc_emails", [])
                 except json.JSONDecodeError:
-                    # Handle case where file is empty or corrupted
-                    self.to_emails = []
-                    self.cc_emails = []
-
+                    self.to_emails, self.cc_emails = [], []
 
     def save_data(self):
         """
@@ -148,7 +181,6 @@ class EmailApp:
         self.save_data()
         self.cancel_sending = False
         
-        # Create and start the email sending thread
         send_thread = threading.Thread(target=self.send_emails)
         send_thread.start()
 
@@ -179,12 +211,12 @@ class EmailApp:
                 mail = outlook.CreateItem(0)
                 mail.To = recipient
                 mail.CC = cc_list
-                mail.Subject = "Your Subject Here" # You can customize the subject
+                mail.Subject = "Your Subject Here" 
                 mail.Body = email_content
                 mail.Send()
             except Exception as e:
                 messagebox.showerror("Email Error", f"Could not send email to {recipient}.\nError: {e}")
-        else: # This 'else' belongs to the 'for' loop and executes if the loop completes without a 'break'
+        else: 
             if not self.cancel_sending:
                 messagebox.showinfo("Success", "All emails have been sent successfully.")
 
@@ -204,16 +236,9 @@ class EmailApp:
             for entry in self.cc_entries:
                 entry.delete(0, 'end')
             self.email_body.delete("1.0", 'end')
-            self.save_data() # Save the cleared fields
+            self.save_data()
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = EmailApp(root)
     root.mainloop()
-
-# This code is a simple email automation tool that allows users to send batch emails using Microsoft Outlook.
-# It features a user-friendly interface with fields for recipient emails, CC emails, and the email body.
-# The application saves the email addresses to a JSON file and allows users to clear fields, cancel sending, and send emails in a separate thread to keep the UI responsive.
-# The email body field has been updated to allow for more flexible input, and the UI has been adjusted to prioritize the email body field for better usability.
-# The application also handles errors gracefully, providing feedback to the user if Outlook is not running or if there are issues sending emails.
-# The code is structured to be easily maintainable and extendable for future features.  
