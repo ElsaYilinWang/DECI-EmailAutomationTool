@@ -225,7 +225,7 @@ class EmailApp:
 
     def send_emails(self):
         """
-        Iterates through the recipient list and sends emails via Outlook.
+        Iterates through the recipient list and sends emails via Outlook, including the default signature.
         """
         try:
             outlook = win32.Dispatch('outlook.application')
@@ -236,7 +236,7 @@ class EmailApp:
         to_list = [entry.get() for entry in self.to_entries if entry.get()]
         cc_list = ";".join([entry.get() for entry in self.cc_entries if entry.get()])
         subject_text = self.subject_entry.get()
-        email_content = self.email_body.get("1.0", "end-1c")
+        user_content = self.email_body.get("1.0", "end-1c")
 
         if not to_list:
             messagebox.showwarning("Input Error", "Please enter at least one recipient.")
@@ -249,10 +249,23 @@ class EmailApp:
             
             try:
                 mail = outlook.CreateItem(0)
+                
+                # This line is crucial. It triggers Outlook to compose the email in the background,
+                # which automatically adds the default signature to the HTMLBody.
+                mail.GetInspector 
+
+                # Now, read the HTML body which contains the signature.
+                signature = mail.HTMLBody
+
+                # Prepare the user's content, converting newlines to HTML <br> tags.
+                user_content_html = f"<p>{user_content.replace(os.linesep, '<br>')}</p>"
+
+                # Set the final HTML body by prepending the user's content to the signature.
                 mail.To = recipient
                 mail.CC = cc_list
                 mail.Subject = subject_text if subject_text else "No Subject"
-                mail.Body = email_content
+                mail.HTMLBody = user_content_html + signature
+                
                 mail.Send()
             except Exception as e:
                 messagebox.showerror("Email Error", f"Could not send email to {recipient}.\nError: {e}")
