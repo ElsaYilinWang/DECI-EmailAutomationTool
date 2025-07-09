@@ -8,7 +8,7 @@ import os
 class EmailApp:
     """
     A desktop application for sending batch emails via Microsoft Outlook,
-    styled to resemble the new Outlook interface.
+    using a pre-formatted draft as a template.
     """
     def __init__(self, root):
         """
@@ -16,7 +16,7 @@ class EmailApp:
         """
         self.root = root
         self.root.title("Email Automation Tool")
-        self.root.geometry("900x780")
+        self.root.geometry("900x500") # Reduced height as message box is removed
 
         # --- New Outlook UI Styling ---
         self.colors = {
@@ -43,7 +43,7 @@ class EmailApp:
         self.data_file = "email_data.json"
         self.to_emails = []
         self.cc_emails = []
-        self.subject = ""
+        self.draft_subject = ""
         self.sender_email = "Detecting..." # Default value
         self.load_data()
 
@@ -55,7 +55,6 @@ class EmailApp:
         self.cancel_sending = False
         
         # --- Get Sender Email ---
-        # Run in a separate thread to not freeze UI on startup
         threading.Thread(target=self.get_sender_email, daemon=True).start()
 
 
@@ -68,8 +67,7 @@ class EmailApp:
         main_frame.pack(padx=20, pady=20, fill="both", expand=True)
 
         main_frame.grid_rowconfigure(0, weight=1) 
-        main_frame.grid_rowconfigure(1, weight=0) # Subject row
-        main_frame.grid_rowconfigure(2, weight=5) # Message row
+        main_frame.grid_rowconfigure(1, weight=0) # Draft Subject row
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
 
@@ -121,33 +119,18 @@ class EmailApp:
             entry.grid(row=i, column=0, padx=10, pady=3, sticky="ew")
             self.cc_entries.append(entry)
 
-        # --- Email Subject Frame ---
-        subject_frame = tk.LabelFrame(main_frame, text="Subject", 
+        # --- Draft Subject Frame ---
+        draft_subject_frame = tk.LabelFrame(main_frame, text="Subject of Draft Template in Outlook", 
                                    bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
                                    font=self.font_title, relief='flat', borderwidth=0)
-        subject_frame.grid(row=1, column=0, columnspan=2, pady=5, sticky="nsew")
-        subject_frame.grid_columnconfigure(0, weight=1)
+        draft_subject_frame.grid(row=1, column=0, columnspan=2, pady=10, sticky="nsew")
+        draft_subject_frame.grid_columnconfigure(0, weight=1)
 
-        self.subject_entry = tk.Entry(subject_frame, bg=self.colors['entry_bg'], fg=self.colors['text'],
+        self.draft_subject_entry = tk.Entry(draft_subject_frame, bg=self.colors['entry_bg'], fg=self.colors['text'],
                              relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
                              borderwidth=1, highlightthickness=1)
-        self.subject_entry.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
-        self.subject_entry.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
-
-
-        # --- Email Body Frame ---
-        body_frame = tk.LabelFrame(main_frame, text="Message", 
-                                   bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
-                                   font=self.font_title, relief='flat', borderwidth=0)
-        body_frame.grid(row=2, column=0, columnspan=2, pady=10, sticky="nsew")
-        body_frame.grid_rowconfigure(0, weight=1)
-        body_frame.grid_columnconfigure(0, weight=1)
-
-        self.email_body = Text(body_frame, width=80, bg=self.colors['entry_bg'], fg=self.colors['text'],
-                               relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
-                               borderwidth=1, highlightthickness=1, wrap='word', padx=5, pady=5)
-        self.email_body.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
-        self.email_body.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.draft_subject_entry.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
+        self.draft_subject_entry.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
         # --- Status and Buttons Frame ---
         bottom_frame = tk.Frame(main_frame, bg=self.colors['bg'])
@@ -192,17 +175,15 @@ class EmailApp:
         """Detects the default Outlook account email and updates the UI."""
         try:
             outlook = win32.Dispatch('outlook.application')
-            # This is a reliable way to get the primary account's SMTP address
             self.sender_email = outlook.Session.Accounts[0].SmtpAddress
         except Exception:
             self.sender_email = "Outlook not running or no account found."
         
-        # Update the label in the UI
         self.sender_label.config(text=f"Sending from: {self.sender_email}")
 
     def load_data(self):
         """
-        Loads email addresses and subject from the JSON data file.
+        Loads email addresses and draft subject from the JSON data file.
         """
         if os.path.exists(self.data_file):
             with open(self.data_file, 'r') as f:
@@ -210,25 +191,25 @@ class EmailApp:
                     data = json.load(f)
                     self.to_emails = data.get("to_emails", [])
                     self.cc_emails = data.get("cc_emails", [])
-                    self.subject = data.get("subject", "")
+                    self.draft_subject = data.get("draft_subject", "")
                 except json.JSONDecodeError:
-                    self.to_emails, self.cc_emails, self.subject = [], [], ""
+                    self.to_emails, self.cc_emails, self.draft_subject = [], [], ""
 
     def save_data(self):
         """
-        Saves the current email addresses and subject to the JSON data file.
+        Saves the current email addresses and draft subject to the JSON data file.
         """
         data = {
             "to_emails": [entry.get() for entry in self.to_entries],
             "cc_emails": [entry.get() for entry in self.cc_entries],
-            "subject": self.subject_entry.get()
+            "draft_subject": self.draft_subject_entry.get()
         }
         with open(self.data_file, 'w') as f:
             json.dump(data, f, indent=4)
 
     def populate_fields(self):
         """
-        Fills the entry fields with the loaded email addresses and subject.
+        Fills the entry fields with the loaded email addresses and draft subject.
         """
         for i, email in enumerate(self.to_emails):
             if i < len(self.to_entries):
@@ -238,7 +219,7 @@ class EmailApp:
             if i < len(self.cc_entries):
                 self.cc_entries[i].insert(0, email)
         
-        self.subject_entry.insert(0, self.subject)
+        self.draft_subject_entry.insert(0, self.draft_subject)
 
     def start_sending_thread(self):
         """
@@ -252,48 +233,62 @@ class EmailApp:
 
     def send_emails(self):
         """
-        Iterates through the recipient list and sends emails via Outlook, including the default signature.
+        Finds a draft email in Outlook by subject and sends a copy to each recipient.
         """
         try:
             outlook = win32.Dispatch('outlook.application')
+            namespace = outlook.GetNamespace("MAPI")
         except Exception as e:
             messagebox.showerror("Outlook Error", f"Microsoft Outlook is not running or could not be started.\nError: {e}")
             return
 
         to_list = [entry.get() for entry in self.to_entries if entry.get()]
         cc_list = ";".join([entry.get() for entry in self.cc_entries if entry.get()])
-        subject_text = self.subject_entry.get()
-        user_content = self.email_body.get("1.0", "end-1c")
+        template_subject = self.draft_subject_entry.get()
 
         if not to_list:
             messagebox.showwarning("Input Error", "Please enter at least one recipient.")
             return
+        if not template_subject:
+            messagebox.showwarning("Input Error", "Please enter the subject of the draft template.")
+            return
 
-        for recipient in to_list:
-            if self.cancel_sending:
-                messagebox.showinfo("Cancelled", "Email sending has been cancelled.")
-                break
+        try:
+            # Find the draft template
+            drafts_folder = namespace.GetDefaultFolder(16) # 16 is the folder index for Drafts
+            template_email = None
+            for item in drafts_folder.Items:
+                if item.Subject == template_subject:
+                    template_email = item
+                    break
             
-            try:
-                mail = outlook.CreateItem(0)
+            if template_email is None:
+                messagebox.showerror("Template Not Found", f"Could not find a draft with the subject: '{template_subject}'")
+                return
+
+            # Store template content
+            template_body = template_email.HTMLBody
+            
+            # Send a copy to each recipient
+            for recipient in to_list:
+                if self.cancel_sending:
+                    messagebox.showinfo("Cancelled", "Email sending has been cancelled.")
+                    break
                 
-                mail.GetInspector 
+                new_mail = outlook.CreateItem(0)
+                new_mail.To = recipient
+                new_mail.CC = cc_list
+                new_mail.Subject = template_subject
+                new_mail.HTMLBody = template_body
+                new_mail.Send()
 
-                signature = mail.HTMLBody
+            else: 
+                if not self.cancel_sending:
+                    messagebox.showinfo("Success", "All emails have been sent successfully.")
 
-                user_content_html = f"<p>{user_content.replace(os.linesep, '<br>')}</p>"
+        except Exception as e:
+            messagebox.showerror("Email Error", f"An error occurred during sending.\nError: {e}")
 
-                mail.To = recipient
-                mail.CC = cc_list
-                mail.Subject = subject_text if subject_text else "No Subject"
-                mail.HTMLBody = user_content_html + signature
-                
-                mail.Send()
-            except Exception as e:
-                messagebox.showerror("Email Error", f"Could not send email to {recipient}.\nError: {e}")
-        else: 
-            if not self.cancel_sending:
-                messagebox.showinfo("Success", "All emails have been sent successfully.")
 
     def cancel_send(self):
         """
@@ -310,8 +305,7 @@ class EmailApp:
                 entry.delete(0, 'end')
             for entry in self.cc_entries:
                 entry.delete(0, 'end')
-            self.subject_entry.delete(0, 'end')
-            self.email_body.delete("1.0", 'end')
+            self.draft_subject_entry.delete(0, 'end')
             self.save_data()
 
 if __name__ == "__main__":
