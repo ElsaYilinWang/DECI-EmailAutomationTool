@@ -265,9 +265,6 @@ class EmailApp:
             if template_email is None:
                 messagebox.showerror("Template Not Found", f"Could not find a draft with the subject: '{template_subject}'")
                 return
-
-            # Store template content
-            template_body = template_email.HTMLBody
             
             # Send a copy to each recipient
             for recipient in to_list:
@@ -275,12 +272,15 @@ class EmailApp:
                     messagebox.showinfo("Cancelled", "Email sending has been cancelled.")
                     break
                 
-                new_mail = outlook.CreateItem(0)
-                new_mail.To = recipient
-                new_mail.CC = cc_list
-                new_mail.Subject = template_subject
-                new_mail.HTMLBody = template_body
-                new_mail.Send()
+                # Create a perfect copy of the draft. This preserves all formatting and attachments.
+                copied_mail = template_email.Copy()
+                
+                # Set the recipients for the new copy
+                copied_mail.To = recipient
+                copied_mail.CC = cc_list
+                
+                # The Subject and Body are already correct because it's a copy.
+                copied_mail.Send()
 
             else: 
                 if not self.cancel_sending:
