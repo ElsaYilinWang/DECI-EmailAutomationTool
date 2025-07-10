@@ -1,6 +1,6 @@
-Software Requirements Specification: Email Automation Tool v2.3
+Software Requirements Specification: Email Automation Tool v2.4
 1. Introduction
-This document outlines the requirements for a desktop application designed to automate and streamline the process of sending batch emails using Microsoft Outlook. The application provides a user-friendly, modern interface for managing recipient lists and sending perfectly formatted emails by using an Outlook draft as a template. The intended users are employees who need to send standardized, richly formatted communications (including tables, images, and styled text) to multiple recipients without manual repetition.
+This document outlines the requirements for a desktop application designed to automate and streamline the process of sending batch emails using Microsoft Outlook. The application provides a user-friendly, modern interface for managing recipient lists and sending perfectly formatted emails by using an Outlook draft as a template.
 
 2. Overall Description
 The application is a standalone Python-based tool with a graphical user interface (GUI) styled to mimic the modern Microsoft Outlook aesthetic. It allows users to input and automatically save lists of 'To' and 'CC' email addresses.

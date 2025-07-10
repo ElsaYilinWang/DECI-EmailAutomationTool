@@ -55,7 +55,7 @@ Copy and paste the code below into that file. I have already configured it for y
 AppId={{YOUR-UNIQUE-APP-ID}}
 AppName=Email Automation Tool
 AppVersion=1.0
-AppPublisher=DECI-LTD
+AppPublisher=Elsa Wang
 DefaultDirName={autopf}\Email Automation Tool
 DefaultGroupName=Email Automation Tool
 AllowNoIcons=yes
