@@ -32,7 +32,7 @@ class EmailApp:
         # --- Data Storage ---
         self.data_file = "email_data.json"
         self.to_emails_str = ""
-        self.cc_emails = []
+        self.cc_emails_str = ""
         self.draft_subject = ""
         self.sender_email = "Detecting..."
         self.load_data()
@@ -49,11 +49,11 @@ class EmailApp:
         main_frame.pack(padx=20, pady=20, fill="both", expand=True)
         main_frame.grid_rowconfigure(0, weight=1)
         main_frame.grid_rowconfigure(1, weight=0)
-        main_frame.grid_columnconfigure(0, weight=3) # Give To field more space
+        main_frame.grid_columnconfigure(0, weight=2) # Give To field more space
         main_frame.grid_columnconfigure(1, weight=1)
 
         # --- "To" Emails Frame ---
-        to_frame_container = tk.LabelFrame(main_frame, text="To (Paste Email List Below)", 
+        to_frame_container = tk.LabelFrame(main_frame, text="To (Paste Email List)", 
                                            bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
                                            font=self.font_title, relief='flat', borderwidth=0)
         to_frame_container.grid(row=0, column=0, padx=(0, 10), pady=5, sticky="nsew")
@@ -66,24 +66,26 @@ class EmailApp:
         self.to_emails_text.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
         self.to_emails_text.grid(row=0, column=0, sticky="nsew", padx=10, pady=(5,0))
 
-        review_button = self.create_modern_button(to_frame_container, "Review Email List", self.review_emails, 'secondary')
-        review_button.grid(row=1, column=0, sticky="e", padx=10, pady=10)
+        review_to_button = self.create_modern_button(to_frame_container, "Review 'To' List", lambda: self.review_emails(self.to_emails_text, "'To' Recipients"), 'secondary')
+        review_to_button.grid(row=1, column=0, sticky="e", padx=10, pady=10)
         
         # --- "CC" Emails Frame ---
-        cc_frame = tk.LabelFrame(main_frame, text="Cc", 
+        cc_frame = tk.LabelFrame(main_frame, text="Cc (Paste Email List)", 
                                  bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
                                  font=self.font_title, relief='flat', borderwidth=0)
         cc_frame.grid(row=0, column=1, padx=(10, 0), pady=5, sticky="nsew")
+        cc_frame.grid_rowconfigure(0, weight=1)
         cc_frame.grid_columnconfigure(0, weight=1)
 
-        self.cc_entries = []
-        for i in range(6):
-            entry = tk.Entry(cc_frame, width=30, bg=self.colors['entry_bg'], fg=self.colors['text'],
-                             relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
-                             borderwidth=1, highlightthickness=1)
-            entry.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
-            entry.grid(row=i, column=0, padx=10, pady=3, sticky="ew")
-            self.cc_entries.append(entry)
+        self.cc_emails_text = Text(cc_frame, bg=self.colors['entry_bg'], fg=self.colors['text'],
+                                   relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
+                                   borderwidth=1, highlightthickness=1, wrap='word', padx=5, pady=5)
+        self.cc_emails_text.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
+        self.cc_emails_text.grid(row=0, column=0, sticky="nsew", padx=10, pady=(5,0))
+        
+        review_cc_button = self.create_modern_button(cc_frame, "Review 'Cc' List", lambda: self.review_emails(self.cc_emails_text, "'Cc' Recipients"), 'secondary')
+        review_cc_button.grid(row=1, column=0, sticky="e", padx=10, pady=10)
+
 
         # --- Draft Subject Frame ---
         draft_subject_frame = tk.LabelFrame(main_frame, text="Subject of Draft Template in Outlook", 
@@ -117,19 +119,17 @@ class EmailApp:
 
     def _get_validated_emails(self, text_content):
         """Helper to parse and validate emails from a string."""
-        # Simple regex to find things that look like emails
         email_regex = r'[\w\.\-]+@[\w\.\-]+'
         potential_emails = re.findall(email_regex, text_content)
-        # Remove duplicates and return a clean list
         return sorted(list(set(email.lower() for email in potential_emails)))
 
-    def review_emails(self):
-        """Parses emails from the Text widget and shows them in a review window."""
-        text_content = self.to_emails_text.get("1.0", "end")
+    def review_emails(self, text_widget, title):
+        """Parses emails from a given Text widget and shows them in a review window."""
+        text_content = text_widget.get("1.0", "end")
         valid_emails = self._get_validated_emails(text_content)
         
         review_window = tk.Toplevel(self.root)
-        review_window.title("Email Review")
+        review_window.title(f"{title} Review")
         review_window.geometry("400x500")
         review_window.configure(bg=self.colors['frame_bg'])
 
@@ -182,7 +182,7 @@ class EmailApp:
                 try:
                     data = json.load(f)
                     self.to_emails_str = data.get("to_emails_str", "")
-                    self.cc_emails = data.get("cc_emails", [])
+                    self.cc_emails_str = data.get("cc_emails_str", "")
                     self.draft_subject = data.get("draft_subject", "")
                 except json.JSONDecodeError:
                     pass
@@ -190,7 +190,7 @@ class EmailApp:
     def save_data(self):
         data = {
             "to_emails_str": self.to_emails_text.get("1.0", "end-1c"),
-            "cc_emails": [entry.get() for entry in self.cc_entries],
+            "cc_emails_str": self.cc_emails_text.get("1.0", "end-1c"),
             "draft_subject": self.draft_subject_entry.get()
         }
         with open(self.data_file, 'w') as f:
@@ -199,13 +199,10 @@ class EmailApp:
     def populate_fields(self):
         self.to_emails_text.insert("1.0", self.to_emails_str)
         
-        # If saved CC list is empty, use default. Otherwise, use saved list.
-        if not any(self.cc_emails):
-            self.cc_entries[0].insert(0, 'mro@deci-ltd.com')
+        if not self.cc_emails_str.strip():
+            self.cc_emails_text.insert("1.0", 'mro@deci-ltd.com')
         else:
-            for i, email in enumerate(self.cc_emails):
-                if i < len(self.cc_entries):
-                    self.cc_entries[i].insert(0, email)
+            self.cc_emails_text.insert("1.0", self.cc_emails_str)
         
         self.draft_subject_entry.insert(0, self.draft_subject)
 
@@ -215,8 +212,10 @@ class EmailApp:
         threading.Thread(target=self.send_emails).start()
 
     def send_emails(self):
-        # --- Pre-send checks and confirmations ---
-        cc_list_str = "; ".join(e for e in [entry.get() for entry in self.cc_entries] if e)
+        cc_text_content = self.cc_emails_text.get("1.0", "end")
+        cc_list = self._get_validated_emails(cc_text_content)
+        cc_list_str = "; ".join(cc_list)
+        
         if not messagebox.askokcancel("Confirm CC Addresses", f"You are about to send this email with the following in CC:\n\n{cc_list_str if cc_list_str else 'NOBODY'}\n\nDo you want to proceed?"):
             return
 
@@ -230,7 +229,6 @@ class EmailApp:
             messagebox.showwarning("Input Error", "Please enter the subject of the draft template.")
             return
 
-        # --- Email sending logic ---
         try:
             outlook = win32.Dispatch('outlook.application')
             namespace = outlook.GetNamespace("MAPI")
@@ -266,10 +264,9 @@ class EmailApp:
     def clear_fields(self):
         if messagebox.askokcancel("Confirm Clear", "Are you sure you want to clear all fields?"):
             self.to_emails_text.delete("1.0", 'end')
-            for entry in self.cc_entries:
-                entry.delete(0, 'end')
+            self.cc_emails_text.delete("1.0", 'end')
             self.draft_subject_entry.delete(0, 'end')
-            self.populate_fields() # Re-populate default CC
+            self.populate_fields()
             self.save_data()
 
 if __name__ == "__main__":
