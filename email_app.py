@@ -5,6 +5,23 @@ import win32com.client as win32
 import threading
 import os
 import re
+import logging
+from logging.handlers import RotatingFileHandler
+
+# --- Setup System Logging ---
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+log_file = 'app_log.log'
+# Use a rotating file handler to keep log files from growing too large
+# This will create up to 3 backup log files, each up to 1MB in size.
+my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=1*1024*1024, 
+                                 backupCount=3, encoding=None, delay=0)
+my_handler.setFormatter(log_formatter)
+my_handler.setLevel(logging.INFO)
+
+app_log = logging.getLogger('root')
+app_log.setLevel(logging.INFO)
+app_log.addHandler(my_handler)
+
 
 class EmailApp:
     """
@@ -12,6 +29,7 @@ class EmailApp:
     using a pre-formatted draft as a template.
     """
     def __init__(self, root):
+        app_log.info("Application starting up.")
         self.root = root
         self.root.title("Email Automation Tool")
         self.root.geometry("900x650")
@@ -43,6 +61,13 @@ class EmailApp:
         
         self.cancel_sending = False
         threading.Thread(target=self.get_sender_email, daemon=True).start()
+        
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def on_closing(self):
+        """Handle the window closing event."""
+        app_log.info("Application shutting down.")
+        self.root.destroy()
 
     def create_widgets(self):
         main_frame = tk.Frame(self.root, bg=self.colors['bg'])
@@ -86,7 +111,6 @@ class EmailApp:
         review_cc_button = self.create_modern_button(cc_frame, "Review 'Cc' List", lambda: self.review_emails(self.cc_emails_text, "'Cc' Recipients"), 'secondary')
         review_cc_button.grid(row=1, column=0, sticky="e", padx=10, pady=10)
 
-
         # --- Draft Subject Frame ---
         draft_subject_frame = tk.LabelFrame(main_frame, text="Subject of Draft Template in Outlook", 
                                    bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
@@ -118,13 +142,11 @@ class EmailApp:
         self.create_modern_button(button_container, "Send in Batch", self.start_sending_thread, 'primary').pack(side='left')
 
     def _get_validated_emails(self, text_content):
-        """Helper to parse and validate emails from a string."""
         email_regex = r'[\w\.\-]+@[\w\.\-]+'
         potential_emails = re.findall(email_regex, text_content)
         return sorted(list(set(email.lower() for email in potential_emails)))
 
     def review_emails(self, text_widget, title):
-        """Parses emails from a given Text widget and shows them in a review window."""
         text_content = text_widget.get("1.0", "end")
         valid_emails = self._get_validated_emails(text_content)
         
@@ -172,8 +194,11 @@ class EmailApp:
         try:
             outlook = win32.Dispatch('outlook.application')
             self.sender_email = outlook.Session.Accounts[0].SmtpAddress
-        except Exception:
+            app_log.info(f"Successfully detected sender email: {self.sender_email}")
+        except Exception as e:
             self.sender_email = "Outlook not running or no account found."
+            app_log.error(f"Failed to detect sender email. Error: {e}")
+        
         self.sender_label.config(text=f"Sending from: {self.sender_email}")
 
     def load_data(self):
@@ -184,7 +209,9 @@ class EmailApp:
                     self.to_emails_str = data.get("to_emails_str", "")
                     self.cc_emails_str = data.get("cc_emails_str", "")
                     self.draft_subject = data.get("draft_subject", "")
+                    app_log.info("User data loaded successfully.")
                 except json.JSONDecodeError:
+                    app_log.error("Failed to decode JSON data file.")
                     pass
 
     def save_data(self):
@@ -195,6 +222,7 @@ class EmailApp:
         }
         with open(self.data_file, 'w') as f:
             json.dump(data, f, indent=4)
+        app_log.info("User data saved.")
 
     def populate_fields(self):
         self.to_emails_text.insert("1.0", self.to_emails_str)
@@ -207,6 +235,7 @@ class EmailApp:
         self.draft_subject_entry.insert(0, self.draft_subject)
 
     def start_sending_thread(self):
+        app_log.info("'Send in Batch' button clicked.")
         self.save_data()
         self.cancel_sending = False
         threading.Thread(target=self.send_emails).start()
@@ -217,16 +246,21 @@ class EmailApp:
         cc_list_str = "; ".join(cc_list)
         
         if not messagebox.askokcancel("Confirm CC Addresses", f"You are about to send this email with the following in CC:\n\n{cc_list_str if cc_list_str else 'NOBODY'}\n\nDo you want to proceed?"):
+            app_log.warning("User cancelled sending at CC confirmation.")
             return
 
         to_list = self._get_validated_emails(self.to_emails_text.get("1.0", "end"))
         template_subject = self.draft_subject_entry.get()
+        
+        app_log.info(f"Starting batch send. Template Subject: '{template_subject}'. Number of recipients: {len(to_list)}. CC list: '{cc_list_str}'")
 
         if not to_list:
             messagebox.showwarning("Input Error", "No valid recipient emails found.")
+            app_log.warning("Sending aborted: No valid 'To' recipients.")
             return
         if not template_subject:
             messagebox.showwarning("Input Error", "Please enter the subject of the draft template.")
+            app_log.warning("Sending aborted: No draft subject provided.")
             return
 
         try:
@@ -237,13 +271,16 @@ class EmailApp:
             
             if template_email is None:
                 messagebox.showerror("Template Not Found", f"Could not find a draft with the subject: '{template_subject}'")
+                app_log.error(f"Draft template not found with subject: '{template_subject}'")
                 return
 
             template_body = template_email.HTMLBody
+            app_log.info("Successfully found and loaded draft template.")
             
-            for recipient in to_list:
+            for i, recipient in enumerate(to_list):
                 if self.cancel_sending:
                     messagebox.showinfo("Cancelled", "Email sending has been cancelled.")
+                    app_log.warning(f"User cancelled sending after {i} emails were sent.")
                     break
                 
                 new_mail = outlook.CreateItem(0)
@@ -252,17 +289,23 @@ class EmailApp:
                 new_mail.Subject = template_subject
                 new_mail.HTMLBody = template_body
                 new_mail.Send()
+                app_log.info(f"Email sent to: {recipient}")
             else: 
                 if not self.cancel_sending:
                     messagebox.showinfo("Success", "All emails have been sent successfully.")
+                    app_log.info("Batch send process completed successfully.")
         except Exception as e:
             messagebox.showerror("Email Error", f"An error occurred during sending.\nError: {e}")
+            app_log.error(f"An exception occurred during email sending: {e}")
 
     def cancel_send(self):
+        app_log.info("'Cancel' button clicked.")
         self.cancel_sending = True
 
     def clear_fields(self):
+        app_log.info("'Clear' button clicked.")
         if messagebox.askokcancel("Confirm Clear", "Are you sure you want to clear all fields?"):
+            app_log.info("User confirmed clearing all fields.")
             self.to_emails_text.delete("1.0", 'end')
             self.cc_emails_text.delete("1.0", 'end')
             self.draft_subject_entry.delete(0, 'end')
@@ -270,6 +313,10 @@ class EmailApp:
             self.save_data()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = EmailApp(root)
-    root.mainloop()
+    try:
+        root = tk.Tk()
+        app = EmailApp(root)
+        root.mainloop()
+    except Exception as e:
+        app_log.critical(f"A critical error occurred, causing the application to crash: {e}")
+        raise
