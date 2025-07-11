@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import messagebox, Text, font
+from tkinter import messagebox, Text, font, simpledialog
 import json
 import win32com.client as win32
 import threading
 import os
+import re
 
 class EmailApp:
     """
@@ -11,28 +12,17 @@ class EmailApp:
     using a pre-formatted draft as a template.
     """
     def __init__(self, root):
-        """
-        Initializes the application's user interface and loads saved data.
-        """
         self.root = root
         self.root.title("Email Automation Tool")
-        self.root.geometry("900x500") # Reduced height as message box is removed
+        self.root.geometry("900x650")
 
-        # --- New Outlook UI Styling ---
+        # --- UI Styling ---
         self.colors = {
-            'bg': '#F5F5F5',
-            'frame_bg': '#FFFFFF',
-            'text': '#242424',
-            'secondary_text': '#605E5C',
-            'button_bg': '#0078D4',
-            'button_fg': '#FFFFFF',
-            'button_hover': '#106EBE',
-            'button_secondary_bg': '#FFFFFF',
-            'button_secondary_fg': '#242424',
-            'button_secondary_hover': '#F0F0F0',
-            'entry_bg': '#FFFFFF',
-            'border': '#C8C6C4',
-            'border_focus': '#0078D4'
+            'bg': '#F5F5F5', 'frame_bg': '#FFFFFF', 'text': '#242424',
+            'secondary_text': '#605E5C', 'button_bg': '#0078D4', 'button_fg': '#FFFFFF',
+            'button_hover': '#106EBE', 'button_secondary_bg': '#FFFFFF',
+            'button_secondary_fg': '#242424', 'button_secondary_hover': '#F0F0F0',
+            'entry_bg': '#FFFFFF', 'border': '#C8C6C4', 'border_focus': '#0078D4'
         }
         self.root.configure(bg=self.colors['bg'])
         self.font_normal = font.Font(family="Segoe UI", size=10)
@@ -41,68 +31,44 @@ class EmailApp:
 
         # --- Data Storage ---
         self.data_file = "email_data.json"
-        self.to_emails = []
+        self.to_emails_str = ""
         self.cc_emails = []
         self.draft_subject = ""
-        self.sender_email = "Detecting..." # Default value
+        self.sender_email = "Detecting..."
         self.load_data()
 
         # --- UI Setup ---
         self.create_widgets()
         self.populate_fields()
         
-        # --- Cancellation Flag ---
         self.cancel_sending = False
-        
-        # --- Get Sender Email ---
         threading.Thread(target=self.get_sender_email, daemon=True).start()
 
-
     def create_widgets(self):
-        """
-        Creates and arranges all the UI components in the main window.
-        """
-        # --- Main Frames ---
         main_frame = tk.Frame(self.root, bg=self.colors['bg'])
         main_frame.pack(padx=20, pady=20, fill="both", expand=True)
-
-        main_frame.grid_rowconfigure(0, weight=1) 
-        main_frame.grid_rowconfigure(1, weight=0) # Draft Subject row
-        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_rowconfigure(0, weight=1)
+        main_frame.grid_rowconfigure(1, weight=0)
+        main_frame.grid_columnconfigure(0, weight=3) # Give To field more space
         main_frame.grid_columnconfigure(1, weight=1)
 
-        # --- "To" Emails Frame (with Scrollbar) ---
-        to_frame_container = tk.LabelFrame(main_frame, text="To", 
+        # --- "To" Emails Frame ---
+        to_frame_container = tk.LabelFrame(main_frame, text="To (Paste Email List Below)", 
                                            bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
                                            font=self.font_title, relief='flat', borderwidth=0)
         to_frame_container.grid(row=0, column=0, padx=(0, 10), pady=5, sticky="nsew")
         to_frame_container.grid_rowconfigure(0, weight=1)
         to_frame_container.grid_columnconfigure(0, weight=1)
 
-        to_canvas = tk.Canvas(to_frame_container, borderwidth=0, bg=self.colors['frame_bg'], highlightthickness=0)
-        to_scrollbar = tk.Scrollbar(to_frame_container, orient="vertical", command=to_canvas.yview, 
-                                    bg=self.colors['frame_bg'], troughcolor=self.colors['bg'], 
-                                    activebackground=self.colors['button_hover'], relief='flat')
-        to_scrollable_frame = tk.Frame(to_canvas, bg=self.colors['frame_bg'])
+        self.to_emails_text = Text(to_frame_container, bg=self.colors['entry_bg'], fg=self.colors['text'],
+                                   relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
+                                   borderwidth=1, highlightthickness=1, wrap='word', padx=5, pady=5)
+        self.to_emails_text.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
+        self.to_emails_text.grid(row=0, column=0, sticky="nsew", padx=10, pady=(5,0))
 
-        to_scrollable_frame.bind("<Configure>", lambda e: to_canvas.configure(scrollregion=to_canvas.bbox("all")))
+        review_button = self.create_modern_button(to_frame_container, "Review Email List", self.review_emails, 'secondary')
+        review_button.grid(row=1, column=0, sticky="e", padx=10, pady=10)
         
-        to_canvas.create_window((0, 0), window=to_scrollable_frame, anchor="nw")
-        to_canvas.configure(yscrollcommand=to_scrollbar.set)
-        
-        to_canvas.grid(row=0, column=0, sticky="nsew")
-        to_scrollbar.grid(row=0, column=1, sticky="ns")
-        to_scrollable_frame.grid_columnconfigure(0, weight=1)
-
-        self.to_entries = []
-        for i in range(24):
-            entry = tk.Entry(to_scrollable_frame, width=30, bg=self.colors['entry_bg'], fg=self.colors['text'],
-                             relief='solid', font=self.font_normal, insertbackground=self.colors['text'],
-                             borderwidth=1, highlightthickness=1)
-            entry.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
-            entry.grid(row=i, column=0, padx=(10,15), pady=3, sticky="ew")
-            self.to_entries.append(entry)
-
         # --- "CC" Emails Frame ---
         cc_frame = tk.LabelFrame(main_frame, text="Cc", 
                                  bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
@@ -149,58 +115,81 @@ class EmailApp:
         self.create_modern_button(button_container, "Cancel", self.cancel_send, 'secondary').pack(side='left', padx=(0,10))
         self.create_modern_button(button_container, "Send in Batch", self.start_sending_thread, 'primary').pack(side='left')
 
-    def create_modern_button(self, parent, text, command, style='primary'):
-        """Helper function to create styled buttons with hover effects."""
-        if style == 'primary':
-            bg_color = self.colors['button_bg']
-            fg_color = self.colors['button_fg']
-            hover_color = self.colors['button_hover']
-        else: # secondary
-            bg_color = self.colors['button_secondary_bg']
-            fg_color = self.colors['button_secondary_fg']
-            hover_color = self.colors['button_secondary_hover']
+    def _get_validated_emails(self, text_content):
+        """Helper to parse and validate emails from a string."""
+        # Simple regex to find things that look like emails
+        email_regex = r'[\w\.\-]+@[\w\.\-]+'
+        potential_emails = re.findall(email_regex, text_content)
+        # Remove duplicates and return a clean list
+        return sorted(list(set(email.lower() for email in potential_emails)))
 
-        button = tk.Button(parent, text=text, command=command,
-                           bg=bg_color, fg=fg_color,
-                           font=self.font_bold, relief='flat', borderwidth=1,
-                           activebackground=hover_color,
-                           activeforeground=fg_color,
-                           pady=8, padx=15)
+    def review_emails(self):
+        """Parses emails from the Text widget and shows them in a review window."""
+        text_content = self.to_emails_text.get("1.0", "end")
+        valid_emails = self._get_validated_emails(text_content)
         
+        review_window = tk.Toplevel(self.root)
+        review_window.title("Email Review")
+        review_window.geometry("400x500")
+        review_window.configure(bg=self.colors['frame_bg'])
+
+        tk.Label(review_window, text=f"Found {len(valid_emails)} valid & unique emails:", 
+                 font=self.font_bold, bg=self.colors['frame_bg'], fg=self.colors['text']).pack(pady=10)
+
+        list_frame = tk.Frame(review_window)
+        list_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        scrollbar = tk.Scrollbar(list_frame, orient="vertical")
+        listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, font=self.font_normal, 
+                             bg=self.colors['entry_bg'], fg=self.colors['text'], relief='flat')
+        scrollbar.config(command=listbox.yview)
+        
+        scrollbar.pack(side="right", fill="y")
+        listbox.pack(side="left", fill="both", expand=True)
+
+        for email in valid_emails:
+            listbox.insert("end", email)
+
+        tk.Button(review_window, text="Close", command=review_window.destroy, 
+                  font=self.font_bold, bg=self.colors['button_bg'], fg=self.colors['button_fg'], 
+                  relief='flat', padx=10).pack(pady=10)
+        review_window.transient(self.root)
+        review_window.grab_set()
+
+    def create_modern_button(self, parent, text, command, style='primary'):
+        if style == 'primary':
+            bg_color, fg_color, hover_color = self.colors['button_bg'], self.colors['button_fg'], self.colors['button_hover']
+        else:
+            bg_color, fg_color, hover_color = self.colors['button_secondary_bg'], self.colors['button_secondary_fg'], self.colors['button_secondary_hover']
+
+        button = tk.Button(parent, text=text, command=command, bg=bg_color, fg=fg_color, font=self.font_bold, 
+                           relief='flat', borderwidth=1, activebackground=hover_color, activeforeground=fg_color, pady=8, padx=15)
         button.bind("<Enter>", lambda e, h=hover_color: e.widget.config(bg=h))
         button.bind("<Leave>", lambda e, b=bg_color: e.widget.config(bg=b))
         return button
 
     def get_sender_email(self):
-        """Detects the default Outlook account email and updates the UI."""
         try:
             outlook = win32.Dispatch('outlook.application')
             self.sender_email = outlook.Session.Accounts[0].SmtpAddress
         except Exception:
             self.sender_email = "Outlook not running or no account found."
-        
         self.sender_label.config(text=f"Sending from: {self.sender_email}")
 
     def load_data(self):
-        """
-        Loads email addresses and draft subject from the JSON data file.
-        """
         if os.path.exists(self.data_file):
             with open(self.data_file, 'r') as f:
                 try:
                     data = json.load(f)
-                    self.to_emails = data.get("to_emails", [])
+                    self.to_emails_str = data.get("to_emails_str", "")
                     self.cc_emails = data.get("cc_emails", [])
                     self.draft_subject = data.get("draft_subject", "")
                 except json.JSONDecodeError:
-                    self.to_emails, self.cc_emails, self.draft_subject = [], [], ""
+                    pass
 
     def save_data(self):
-        """
-        Saves the current email addresses and draft subject to the JSON data file.
-        """
         data = {
-            "to_emails": [entry.get() for entry in self.to_entries],
+            "to_emails_str": self.to_emails_text.get("1.0", "end-1c"),
             "cc_emails": [entry.get() for entry in self.cc_entries],
             "draft_subject": self.draft_subject_entry.get()
         }
@@ -208,104 +197,79 @@ class EmailApp:
             json.dump(data, f, indent=4)
 
     def populate_fields(self):
-        """
-        Fills the entry fields with the loaded email addresses and draft subject.
-        """
-        for i, email in enumerate(self.to_emails):
-            if i < len(self.to_entries):
-                self.to_entries[i].insert(0, email)
-
-        for i, email in enumerate(self.cc_emails):
-            if i < len(self.cc_entries):
-                self.cc_entries[i].insert(0, email)
+        self.to_emails_text.insert("1.0", self.to_emails_str)
+        
+        # If saved CC list is empty, use default. Otherwise, use saved list.
+        if not any(self.cc_emails):
+            self.cc_entries[0].insert(0, 'mro@deci-ltd.com')
+        else:
+            for i, email in enumerate(self.cc_emails):
+                if i < len(self.cc_entries):
+                    self.cc_entries[i].insert(0, email)
         
         self.draft_subject_entry.insert(0, self.draft_subject)
 
     def start_sending_thread(self):
-        """
-        Starts the email sending process in a separate thread to keep the UI responsive.
-        """
         self.save_data()
         self.cancel_sending = False
-        
-        send_thread = threading.Thread(target=self.send_emails)
-        send_thread.start()
+        threading.Thread(target=self.send_emails).start()
 
     def send_emails(self):
-        """
-        Finds a draft email in Outlook by subject and sends a copy to each recipient.
-        """
-        try:
-            outlook = win32.Dispatch('outlook.application')
-            namespace = outlook.GetNamespace("MAPI")
-        except Exception as e:
-            messagebox.showerror("Outlook Error", f"Microsoft Outlook is not running or could not be started.\nError: {e}")
+        # --- Pre-send checks and confirmations ---
+        cc_list_str = "; ".join(e for e in [entry.get() for entry in self.cc_entries] if e)
+        if not messagebox.askokcancel("Confirm CC Addresses", f"You are about to send this email with the following in CC:\n\n{cc_list_str if cc_list_str else 'NOBODY'}\n\nDo you want to proceed?"):
             return
 
-        to_list = [entry.get() for entry in self.to_entries if entry.get()]
-        cc_list = ";".join([entry.get() for entry in self.cc_entries if entry.get()])
+        to_list = self._get_validated_emails(self.to_emails_text.get("1.0", "end"))
         template_subject = self.draft_subject_entry.get()
 
         if not to_list:
-            messagebox.showwarning("Input Error", "Please enter at least one recipient.")
+            messagebox.showwarning("Input Error", "No valid recipient emails found.")
             return
         if not template_subject:
             messagebox.showwarning("Input Error", "Please enter the subject of the draft template.")
             return
 
+        # --- Email sending logic ---
         try:
-            # Find the draft template
-            drafts_folder = namespace.GetDefaultFolder(16) # 16 is the folder index for Drafts
-            template_email = None
-            for item in drafts_folder.Items:
-                if item.Subject == template_subject:
-                    template_email = item
-                    break
+            outlook = win32.Dispatch('outlook.application')
+            namespace = outlook.GetNamespace("MAPI")
+            drafts_folder = namespace.GetDefaultFolder(16)
+            template_email = next((item for item in drafts_folder.Items if item.Subject == template_subject), None)
             
             if template_email is None:
                 messagebox.showerror("Template Not Found", f"Could not find a draft with the subject: '{template_subject}'")
                 return
+
+            template_body = template_email.HTMLBody
             
-            # Send a copy to each recipient
             for recipient in to_list:
                 if self.cancel_sending:
                     messagebox.showinfo("Cancelled", "Email sending has been cancelled.")
                     break
                 
-                # Create a perfect copy of the draft. This preserves all formatting and attachments.
-                copied_mail = template_email.Copy()
-                
-                # Set the recipients for the new copy
-                copied_mail.To = recipient
-                copied_mail.CC = cc_list
-                
-                # The Subject and Body are already correct because it's a copy.
-                copied_mail.Send()
-
+                new_mail = outlook.CreateItem(0)
+                new_mail.To = recipient
+                new_mail.CC = cc_list_str
+                new_mail.Subject = template_subject
+                new_mail.HTMLBody = template_body
+                new_mail.Send()
             else: 
                 if not self.cancel_sending:
                     messagebox.showinfo("Success", "All emails have been sent successfully.")
-
         except Exception as e:
             messagebox.showerror("Email Error", f"An error occurred during sending.\nError: {e}")
 
-
     def cancel_send(self):
-        """
-        Sets the cancellation flag to stop the sending process.
-        """
         self.cancel_sending = True
 
     def clear_fields(self):
-        """
-        Clears all input fields in the application.
-        """
         if messagebox.askokcancel("Confirm Clear", "Are you sure you want to clear all fields?"):
-            for entry in self.to_entries:
-                entry.delete(0, 'end')
+            self.to_emails_text.delete("1.0", 'end')
             for entry in self.cc_entries:
                 entry.delete(0, 'end')
             self.draft_subject_entry.delete(0, 'end')
+            self.populate_fields() # Re-populate default CC
             self.save_data()
 
 if __name__ == "__main__":
