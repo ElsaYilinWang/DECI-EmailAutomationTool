@@ -55,7 +55,7 @@ Copy and paste the code below into that file. I have already configured it for y
 AppId={{YOUR-UNIQUE-APP-ID}}
 AppName=Email Automation Tool
 AppVersion=1.0
-AppPublisher=Elsa Wang
+AppPublisher=DECI-LTD
 DefaultDirName={autopf}\Email Automation Tool
 DefaultGroupName=Email Automation Tool
 AllowNoIcons=yes
@@ -97,3 +97,10 @@ Find Your Final Installer
 When it's finished, go to the Installer folder (C:\Users\ElsaWang\Documents\DECI-EmailAutomationTool\Installer). You will find EmailAutomationTool_Setup.exe.
 
 This is the final file you can distribute. It will provide the professional installation experience you described.
+
+Workflow for Updates
+If you make any changes to your email_app.py script, you must rebuild the installer for those changes to be included. The process is:
+
+Re-bundle the .exe: Run the pyinstaller command again to create a new email_app.exe with your latest code.
+
+Re-compile the Installer: Open your setup_script.iss in Inno Setup and re-compile it. It will automatically pick up the new email_app.exe from the dist folder and package it into a new EmailAutomationTool_Setup.exe.
