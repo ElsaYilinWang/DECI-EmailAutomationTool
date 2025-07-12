@@ -2,7 +2,7 @@
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
-AppId={a12d6ee9-3451-4c8f-a59c-a3dab4434506}
+AppId={{a12d6ee9-3451-4c8f-a59c-a3dab4434506}}
 AppName=Email Automation Tool
 AppVersion=1.0
 AppPublisher=Elsa Wang
