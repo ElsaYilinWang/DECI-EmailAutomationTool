@@ -9,10 +9,10 @@ AppPublisher=Elsa Wang
 DefaultDirName={autopf}\Email-Automation-Tool
 DefaultGroupName=Email-Automation-Tool
 AllowNoIcons=yes
-LicenseFile=C:\Users\ElsaWang\Documents\DECI-EmailAutomationTool\license.txt
-OutputDir=C:\Users\ElsaWang\Documents\DECI-EmailAutomationTool\Installer
+LicenseFile=D:\DECI-EmailAutomationTool\license.txt
+OutputDir=D:\DECI-EmailAutomationTool\Installer
 OutputBaseFilename=EmailAutomationTool_Setup
-SetupIconFile=C:\Users\ElsaWang\Documents\DECI-EmailAutomationTool\icon.ico
+SetupIconFile=D:\DECI-EmailAutomationTool\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -25,7 +25,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; This is the most important line. It points to the .exe you created with PyInstaller.
-Source: "C:\Users\ElsaWang\Documents\DECI-EmailAutomationTool\dist\email_app.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\DECI-EmailAutomationTool\dist\email_app.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; You can add other files here, like a UserGuide.pdf if you have one.
 
 [Icons]
@@ -34,3 +34,4 @@ Name: "{autodesktop}\Email Automation Tool"; Filename: "{app}\email_app.exe"; Ta
 
 [Run]
 Filename: "{app}\email_app.exe"; Description: "{cm:LaunchProgram,Email Automation Tool}"; Flags: nowait postinstall skipifsilent
+
