@@ -28,6 +28,8 @@ The goal is to create a professional `setup.exe` file that any user can run to i
 4.  **Find Your Standalone `.exe`**
     When PyInstaller is finished, you will find a new folder named `dist` in your project directory. Inside `dist`, you will find **`email_app.exe`**. This is your complete application.
 
+**Note on Execution Environments:** During development, you may notice that the script only works in certain terminals (like Command Prompt) and not others (like PowerShell in VS Code). This is due to terminal-specific security policies. The final `email_app.exe` created by this process is a native Windows application and does **not** run in a terminal, so it is not affected by these issues.
+
 ### **Step 2: Create the Professional Installer with Inno Setup**
 
 1.  **Download and Install Inno Setup**
