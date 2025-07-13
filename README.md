@@ -1,4 +1,4 @@
-Software Requirements Specification: Email Automation Tool v2.7
+Software Requirements Specification: Email Automation Tool v2.8
 1. Introduction
 This document outlines the requirements for a desktop application designed to automate and streamline the process of sending batch emails using Microsoft Outlook. The application provides a user-friendly, modern interface for bulk-managing recipient lists and sending perfectly formatted emails by using an Outlook draft as a template. The intended users are employees who need to send standardized, richly formatted communications to multiple recipients efficiently and with fewer errors.
 
@@ -42,7 +42,7 @@ The application integrates with the user's locally installed Microsoft Outlook c
 
 Before sending, a confirmation dialog shall display the final parsed list of CC'd email addresses and require user confirmation.
 
-Upon confirmation, the application will find the draft in Outlook by its subject and send a copy to each recipient.
+Upon confirmation, the application will find the draft in Outlook by its subject and send a copy to each recipient. This copy includes all original formatting and attachments.
 
 Data Persistence:
 
@@ -50,21 +50,9 @@ All user-entered text will be automatically saved to a local email_data.json fil
 
 System Logging:
 
-The application shall generate and maintain a log file (app_log.log) in the same directory.
+The application shall generate and maintain a log file (app_log.log).
 
-The log shall record key events, including:
-
-Application start and shutdown.
-
-Successful data loading and saving.
-
-Initiation of a batch send, including the number of recipients and the template subject used.
-
-A record for each individual email sent, including the recipient's address.
-
-Successful completion or user cancellation of a batch send.
-
-All errors encountered (e.g., Outlook not found, template not found).
+The log shall record key events, including application start/shutdown, data loading, batch send initiation, individual emails sent, and all errors.
 
 The log file will automatically rotate to prevent excessive size.
 
@@ -82,4 +70,4 @@ The user must have Microsoft Outlook (Classic version) installed and configured.
 
 An active internet connection is required for Outlook to send emails.
 
-The user is responsible for creating and saving the email template in their Outlook Drafts folder before use.
+The user is responsible for creating and saving the email template (including any attachments) in their Outlook Drafts folder before use.
