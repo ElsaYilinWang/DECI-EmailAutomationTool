@@ -4,14 +4,14 @@
 ; NOTE: The value of AppId uniquely identifies this application.
 AppId={{a12d6ee9-3451-4c8f-a59c-a3dab4434506}}
 AppName=Email Automation Tool
-AppVersion=1.0
-AppPublisher=Elsa Wang
+AppVersion=1.1
+AppPublisher=Yilin (Elsa) Wang
 DefaultDirName={autopf}\Email-Automation-Tool
 DefaultGroupName=Email-Automation-Tool
 AllowNoIcons=yes
 LicenseFile=license.txt
 OutputDir=Installer
-OutputBaseFilename=EmailAutomationTool_Setup
+OutputBaseFilename=EmailAutomationTool_Setup_v1.1
 SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes
@@ -24,9 +24,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; This is the most important line. It points to the .exe you created with PyInstaller.
+; This points to the .exe you created with PyInstaller.
 Source: "dist\email_app.exe"; DestDir: "{app}"; Flags: ignoreversion
-; You can add other files here, like a UserGuide.pdf if you have one.
 
 [Icons]
 Name: "{group}\Email Automation Tool"; Filename: "{app}\email_app.exe"
