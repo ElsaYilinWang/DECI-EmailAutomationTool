@@ -7,10 +7,10 @@ The goal is to create a professional `setup.exe` file that any user can run to i
 
 ### **Step 1: Bundle the App into a Single `.exe` with PyInstaller**
 
-1.  **Install PyInstaller**
-    Open your terminal (with your `.venv` activated) and run:
+1.  **Install Dependencies**
+    Open your terminal (with your `.venv` activated) and install all required libraries:
     ```bash
-    python -m pip install pyinstaller
+    python -m pip install pywin32 python-json-logger pyinstaller
     ```
 
 2.  **Prepare an Application Icon**
@@ -27,8 +27,6 @@ The goal is to create a professional `setup.exe` file that any user can run to i
 
 4.  **Find Your Standalone `.exe`**
     When PyInstaller is finished, you will find a new folder named `dist` in your project directory. Inside `dist`, you will find **`email_app.exe`**. This is your complete application.
-
-**Note on Execution Environments:** During development, you may notice that the script only works in certain terminals (like Command Prompt) and not others (like PowerShell in VS Code). This is due to terminal-specific security policies. The final `email_app.exe` created by this process is a native Windows application and does **not** run in a terminal, so it is not affected by these issues.
 
 ### **Step 2: Create the Professional Installer with Inno Setup**
 
@@ -49,14 +47,14 @@ The goal is to create a professional `setup.exe` file that any user can run to i
     ; NOTE: The value of AppId uniquely identifies this application.
     AppId={{a12d6ee9-3451-4c8f-a59c-a3dab4434506}}
     AppName=Email Automation Tool
-    AppVersion=1.0
+    AppVersion=1.1
     AppPublisher=Elsa Wang
     DefaultDirName={autopf}\Email-Automation-Tool
     DefaultGroupName=Email-Automation-Tool
     AllowNoIcons=yes
     LicenseFile=license.txt
     OutputDir=Installer
-    OutputBaseFilename=EmailAutomationTool_Setup
+    OutputBaseFilename=EmailAutomationTool_Setup_v1.1
     SetupIconFile=icon.ico
     Compression=lzma
     SolidCompression=yes
@@ -86,7 +84,7 @@ The goal is to create a professional `setup.exe` file that any user can run to i
     * Go to **Build > Compile** (or press F9).
 
 5.  **Find Your Final Installer**
-    When it's finished, go to the `Installer` folder (which will be created inside your project directory). You will find **`EmailAutomationTool_Setup.exe`**.
+    When it's finished, go to the `Installer` folder (which will be created inside your project directory). You will find your setup file (e.g., `EmailAutomationTool_Setup_v1.1.exe`).
 
 ### **Workflow for Updates**
 

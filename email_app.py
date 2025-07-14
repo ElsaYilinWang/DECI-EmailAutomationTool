@@ -7,20 +7,45 @@ import os
 import re
 import logging
 from logging.handlers import RotatingFileHandler
+from pythonjsonlogger import jsonlogger
 
-# --- Setup System Logging ---
-log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-log_file = 'app_log.log'
-# Use a rotating file handler to keep log files from growing too large
-# This will create up to 3 backup log files, each up to 1MB in size.
-my_handler = RotatingFileHandler(log_file, mode='a', maxBytes=1*1024*1024, 
-                                 backupCount=3, encoding=None, delay=0)
-my_handler.setFormatter(log_formatter)
-my_handler.setLevel(logging.INFO)
+# ==============================================================================
+# PROFESSIONAL APPLICATION DATA PATH SETUP
+# ==============================================================================
+# This ensures that data and log files are stored in the user's local
+# application data folder, which does not require administrator rights to write to.
+# This solves permission errors when the app is installed in "C:\Program Files".
+app_data_base_dir = os.getenv('APPDATA')
+app_data_dir = os.path.join(app_data_base_dir, 'Email-Automation-Tool')
+os.makedirs(app_data_dir, exist_ok=True)
+# ==============================================================================
 
-app_log = logging.getLogger('root')
+# --- Setup DUAL Logging System ---
+
+# 1. Human-Readable Plain Text Logger
+text_log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+text_log_file = os.path.join(app_data_dir, 'app_log.log')
+text_handler = RotatingFileHandler(text_log_file, mode='a', maxBytes=1*1024*1024, 
+                                   backupCount=3, encoding='utf-8', delay=0)
+text_handler.setFormatter(text_log_formatter)
+text_handler.setLevel(logging.INFO)
+
+# 2. Structured JSON Logger (for database ingestion)
+json_log_formatter = jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+json_log_file = os.path.join(app_data_dir, 'app_log.jsonl')
+json_handler = RotatingFileHandler(json_log_file, mode='a', maxBytes=5*1024*1024, 
+                                   backupCount=3, encoding='utf-8', delay=0)
+json_handler.setFormatter(json_log_formatter)
+json_handler.setLevel(logging.INFO)
+
+# Create logger instances and add the respective handlers
+app_log = logging.getLogger('text_log')
 app_log.setLevel(logging.INFO)
-app_log.addHandler(my_handler)
+app_log.addHandler(text_handler)
+
+db_log = logging.getLogger('json_log')
+db_log.setLevel(logging.INFO)
+db_log.addHandler(json_handler)
 
 
 class EmailApp:
@@ -30,6 +55,8 @@ class EmailApp:
     """
     def __init__(self, root):
         app_log.info("Application starting up.")
+        db_log.info("Application starting up.", extra={'event_type': 'app_start'})
+        
         self.root = root
         self.root.title("Email Automation Tool")
         self.root.geometry("900x650")
@@ -47,8 +74,8 @@ class EmailApp:
         self.font_bold = font.Font(family="Segoe UI", size=11, weight="bold")
         self.font_title = font.Font(family="Segoe UI Semibold", size=12)
 
-        # --- Data Storage ---
-        self.data_file = "email_data.json"
+        # --- Data Storage Path ---
+        self.data_file = os.path.join(app_data_dir, 'email_data.json')
         self.to_emails_str = ""
         self.cc_emails_str = ""
         self.draft_subject = ""
@@ -65,8 +92,8 @@ class EmailApp:
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def on_closing(self):
-        """Handle the window closing event."""
         app_log.info("Application shutting down.")
+        db_log.info("Application shutting down.", extra={'event_type': 'app_shutdown'})
         self.root.destroy()
 
     def create_widgets(self):
@@ -74,10 +101,9 @@ class EmailApp:
         main_frame.pack(padx=20, pady=20, fill="both", expand=True)
         main_frame.grid_rowconfigure(0, weight=1)
         main_frame.grid_rowconfigure(1, weight=0)
-        main_frame.grid_columnconfigure(0, weight=2) # Give To field more space
+        main_frame.grid_columnconfigure(0, weight=2)
         main_frame.grid_columnconfigure(1, weight=1)
 
-        # --- "To" Emails Frame ---
         to_frame_container = tk.LabelFrame(main_frame, text="To (Paste Email List)", 
                                            bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
                                            font=self.font_title, relief='flat', borderwidth=0)
@@ -94,7 +120,6 @@ class EmailApp:
         review_to_button = self.create_modern_button(to_frame_container, "Review 'To' List", lambda: self.review_emails(self.to_emails_text, "'To' Recipients"), 'secondary')
         review_to_button.grid(row=1, column=0, sticky="e", padx=10, pady=10)
         
-        # --- "CC" Emails Frame ---
         cc_frame = tk.LabelFrame(main_frame, text="Cc (Paste Email List)", 
                                  bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
                                  font=self.font_title, relief='flat', borderwidth=0)
@@ -111,7 +136,6 @@ class EmailApp:
         review_cc_button = self.create_modern_button(cc_frame, "Review 'Cc' List", lambda: self.review_emails(self.cc_emails_text, "'Cc' Recipients"), 'secondary')
         review_cc_button.grid(row=1, column=0, sticky="e", padx=10, pady=10)
 
-        # --- Draft Subject Frame ---
         draft_subject_frame = tk.LabelFrame(main_frame, text="Subject of Draft Template in Outlook", 
                                    bg=self.colors['frame_bg'], fg=self.colors['secondary_text'], 
                                    font=self.font_title, relief='flat', borderwidth=0)
@@ -124,7 +148,6 @@ class EmailApp:
         self.draft_subject_entry.config(highlightbackground=self.colors['border'], highlightcolor=self.colors['border_focus'])
         self.draft_subject_entry.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # --- Status and Buttons Frame ---
         bottom_frame = tk.Frame(main_frame, bg=self.colors['bg'])
         bottom_frame.grid(row=3, column=0, columnspan=2, pady=(15,0), sticky="ew")
         bottom_frame.grid_columnconfigure(0, weight=1)
@@ -195,9 +218,11 @@ class EmailApp:
             outlook = win32.Dispatch('outlook.application')
             self.sender_email = outlook.Session.Accounts[0].SmtpAddress
             app_log.info(f"Successfully detected sender email: {self.sender_email}")
+            db_log.info("Sender email detected", extra={'event_type': 'sender_detection_success', 'sender_email': self.sender_email})
         except Exception as e:
             self.sender_email = "Outlook not running or no account found."
             app_log.error(f"Failed to detect sender email. Error: {e}")
+            db_log.error("Failed to detect sender email", extra={'event_type': 'sender_detection_failure', 'error_message': str(e)})
         
         self.sender_label.config(text=f"Sending from: {self.sender_email}")
 
@@ -210,8 +235,10 @@ class EmailApp:
                     self.cc_emails_str = data.get("cc_emails_str", "")
                     self.draft_subject = data.get("draft_subject", "")
                     app_log.info("User data loaded successfully.")
+                    db_log.info("User data loaded", extra={'event_type': 'data_load_success'})
                 except json.JSONDecodeError:
                     app_log.error("Failed to decode JSON data file.")
+                    db_log.error("Failed to decode data file", extra={'event_type': 'data_load_failure'})
                     pass
 
     def save_data(self):
@@ -223,6 +250,7 @@ class EmailApp:
         with open(self.data_file, 'w') as f:
             json.dump(data, f, indent=4)
         app_log.info("User data saved.")
+        db_log.info("User data saved", extra={'event_type': 'data_save_success'})
 
     def populate_fields(self):
         self.to_emails_text.insert("1.0", self.to_emails_str)
@@ -236,6 +264,7 @@ class EmailApp:
 
     def start_sending_thread(self):
         app_log.info("'Send in Batch' button clicked.")
+        db_log.info("Send operation initiated", extra={'event_type': 'send_initiated'})
         self.save_data()
         self.cancel_sending = False
         threading.Thread(target=self.send_emails).start()
@@ -247,20 +276,25 @@ class EmailApp:
         
         if not messagebox.askokcancel("Confirm CC Addresses", f"You are about to send this email with the following in CC:\n\n{cc_list_str if cc_list_str else 'NOBODY'}\n\nDo you want to proceed?"):
             app_log.warning("User cancelled sending at CC confirmation.")
+            db_log.warning("User cancelled at CC confirmation", extra={'event_type': 'send_cancelled_cc'})
             return
 
         to_list = self._get_validated_emails(self.to_emails_text.get("1.0", "end"))
         template_subject = self.draft_subject_entry.get()
         
+        log_info = {'event_type': 'batch_send_start', 'template_subject': template_subject, 'recipient_count': len(to_list), 'cc_list': cc_list}
         app_log.info(f"Starting batch send. Template Subject: '{template_subject}'. Number of recipients: {len(to_list)}. CC list: '{cc_list_str}'")
+        db_log.info("Batch send starting", extra=log_info)
 
         if not to_list:
             messagebox.showwarning("Input Error", "No valid recipient emails found.")
             app_log.warning("Sending aborted: No valid 'To' recipients.")
+            db_log.warning("Sending aborted", extra={'event_type': 'send_aborted_no_recipients'})
             return
         if not template_subject:
             messagebox.showwarning("Input Error", "Please enter the subject of the draft template.")
             app_log.warning("Sending aborted: No draft subject provided.")
+            db_log.warning("Sending aborted", extra={'event_type': 'send_aborted_no_subject'})
             return
 
         try:
@@ -272,40 +306,47 @@ class EmailApp:
             if template_email is None:
                 messagebox.showerror("Template Not Found", f"Could not find a draft with the subject: '{template_subject}'")
                 app_log.error(f"Draft template not found with subject: '{template_subject}'")
+                db_log.error("Draft template not found", extra={'event_type': 'template_not_found', 'subject': template_subject})
                 return
 
-            template_body = template_email.HTMLBody
-            app_log.info("Successfully found and loaded draft template.")
+            app_log.info("Successfully found draft template.")
+            db_log.info("Draft template loaded", extra={'event_type': 'template_found', 'subject': template_subject})
             
             for i, recipient in enumerate(to_list):
                 if self.cancel_sending:
                     messagebox.showinfo("Cancelled", "Email sending has been cancelled.")
                     app_log.warning(f"User cancelled sending after {i} emails were sent.")
+                    db_log.warning("User cancelled sending mid-batch", extra={'event_type': 'send_cancelled_mid_batch', 'emails_sent': i})
                     break
                 
-                new_mail = outlook.CreateItem(0)
+                new_mail = template_email.Copy()
                 new_mail.To = recipient
                 new_mail.CC = cc_list_str
-                new_mail.Subject = template_subject
-                new_mail.HTMLBody = template_body
                 new_mail.Send()
+                
                 app_log.info(f"Email sent to: {recipient}")
+                db_log.info("Email sent successfully", extra={'event_type': 'email_sent', 'recipient': recipient})
             else: 
                 if not self.cancel_sending:
                     messagebox.showinfo("Success", "All emails have been sent successfully.")
                     app_log.info("Batch send process completed successfully.")
+                    db_log.info("Batch send completed", extra={'event_type': 'batch_send_success'})
         except Exception as e:
             messagebox.showerror("Email Error", f"An error occurred during sending.\nError: {e}")
             app_log.error(f"An exception occurred during email sending: {e}")
+            db_log.error("Exception during email sending", extra={'event_type': 'send_exception', 'error_message': str(e)})
 
     def cancel_send(self):
         app_log.info("'Cancel' button clicked.")
+        db_log.info("Cancel button clicked", extra={'event_type': 'cancel_clicked'})
         self.cancel_sending = True
 
     def clear_fields(self):
         app_log.info("'Clear' button clicked.")
+        db_log.info("Clear button clicked", extra={'event_type': 'clear_clicked'})
         if messagebox.askokcancel("Confirm Clear", "Are you sure you want to clear all fields?"):
             app_log.info("User confirmed clearing all fields.")
+            db_log.info("User confirmed clear", extra={'event_type': 'clear_confirmed'})
             self.to_emails_text.delete("1.0", 'end')
             self.cc_emails_text.delete("1.0", 'end')
             self.draft_subject_entry.delete(0, 'end')
@@ -319,4 +360,5 @@ if __name__ == "__main__":
         root.mainloop()
     except Exception as e:
         app_log.critical(f"A critical error occurred, causing the application to crash: {e}")
+        db_log.critical("Application crash", extra={'event_type': 'app_crash', 'error_message': str(e)})
         raise

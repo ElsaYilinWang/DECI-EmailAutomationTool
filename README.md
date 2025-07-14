@@ -1,11 +1,11 @@
-Software Requirements Specification: Email Automation Tool v2.8
+Software Requirements Specification: Email Automation Tool v2.9
 1. Introduction
 This document outlines the requirements for a desktop application designed to automate and streamline the process of sending batch emails using Microsoft Outlook. The application provides a user-friendly, modern interface for bulk-managing recipient lists and sending perfectly formatted emails by using an Outlook draft as a template. The intended users are employees who need to send standardized, richly formatted communications to multiple recipients efficiently and with fewer errors.
 
 2. Overall Description
 The application is a standalone Python-based tool with a GUI styled to mimic the modern Microsoft Outlook aesthetic. It allows users to paste lists of recipient and CC email addresses in bulk and save them automatically.
 
-The core functionality revolves around a "draft template" workflow. The user first composes a perfectly formatted email in their Outlook Drafts folder. The application uses the subject line of this draft to find it and send a copy to every valid recipient on the list. The application includes features to reduce errors, such as a pre-send review of the recipient lists and a confirmation dialog to verify CC addresses. A default CC address is also included as a placeholder. All major operations and errors are recorded in a system log file for future reference.
+The core functionality revolves around a "draft template" workflow. The user first composes a perfectly formatted email in their Outlook Drafts folder. The application uses the subject line of this draft to find it and send a copy to every valid recipient on the list. The application includes features to reduce errors, such as a pre-send review of the recipient lists and a confirmation dialog to verify CC addresses. A default CC address is also included as a placeholder. All major operations and errors are recorded in a dual-format system log for future reference and database integration.
 
 3. Functional Requirements
 3.1 User Interface (UI)
@@ -46,15 +46,19 @@ Upon confirmation, the application will find the draft in Outlook by its subject
 
 Data Persistence:
 
-All user-entered text will be automatically saved to a local email_data.json file.
+All user-entered text will be automatically saved to a local email_data.json file, stored in the user's AppData folder.
 
 System Logging:
 
-The application shall generate and maintain a log file (app_log.log).
+The application shall generate and maintain two log files in the user's AppData folder:
 
-The log shall record key events, including application start/shutdown, data loading, batch send initiation, individual emails sent, and all errors.
+app_log.log: A human-readable, plain-text log for easy debugging.
 
-The log file will automatically rotate to prevent excessive size.
+app_log.jsonl: A structured JSON log where each line is a JSON object, designed for automated parsing and database ingestion.
+
+The logs shall record key events, including application start/shutdown, data loading, batch send initiation, individual emails sent, and all errors.
+
+Both log files will automatically rotate to prevent excessive size.
 
 4. Non-Functional Requirements
 Platform: Developed in Python and compatible with Windows.
