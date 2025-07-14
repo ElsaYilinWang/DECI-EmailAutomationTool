@@ -48,7 +48,7 @@ The goal is to create a professional `setup.exe` file that any user can run to i
     AppId={{a12d6ee9-3451-4c8f-a59c-a3dab4434506}}
     AppName=Email Automation Tool
     AppVersion=1.1
-    AppPublisher=Elsa Wang
+    AppPublisher=Yilin (Elsa) Wang
     DefaultDirName={autopf}\Email-Automation-Tool
     DefaultGroupName=Email-Automation-Tool
     AllowNoIcons=yes
