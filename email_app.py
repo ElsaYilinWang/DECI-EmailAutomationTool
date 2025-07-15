@@ -312,6 +312,11 @@ class EmailApp:
             app_log.info("Successfully found draft template.")
             db_log.info("Draft template loaded", extra={'event_type': 'template_found', 'subject': template_subject})
             
+            # --- FIX FOR "INLINE RESPONSE" ERROR ---
+            # Create a clean, in-memory copy of the draft *before* the loop.
+            # This avoids issues with the original draft being in a read-only "inline" state.
+            clean_template_copy = template_email.Copy()
+
             for i, recipient in enumerate(to_list):
                 if self.cancel_sending:
                     messagebox.showinfo("Cancelled", "Email sending has been cancelled.")
@@ -319,7 +324,8 @@ class EmailApp:
                     db_log.warning("User cancelled sending mid-batch", extra={'event_type': 'send_cancelled_mid_batch', 'emails_sent': i})
                     break
                 
-                new_mail = template_email.Copy()
+                # Now, create a copy *of the clean copy* for each recipient.
+                new_mail = clean_template_copy.Copy()
                 new_mail.To = recipient
                 new_mail.CC = cc_list_str
                 new_mail.Send()
@@ -347,10 +353,13 @@ class EmailApp:
         if messagebox.askokcancel("Confirm Clear", "Are you sure you want to clear all fields?"):
             app_log.info("User confirmed clearing all fields.")
             db_log.info("User confirmed clear", extra={'event_type': 'clear_confirmed'})
+            
             self.to_emails_text.delete("1.0", 'end')
             self.cc_emails_text.delete("1.0", 'end')
             self.draft_subject_entry.delete(0, 'end')
-            self.populate_fields()
+            
+            self.cc_emails_text.insert("1.0", 'mro@deci-ltd.com')
+            
             self.save_data()
 
 if __name__ == "__main__":
