@@ -312,7 +312,6 @@ class EmailApp:
             app_log.info("Successfully found draft template.")
             db_log.info("Draft template loaded", extra={'event_type': 'template_found', 'subject': template_subject})
             
-            # --- FIX FOR "INLINE RESPONSE" ERROR ---
             # Create a clean, in-memory copy of the draft *before* the loop.
             # This avoids issues with the original draft being in a read-only "inline" state.
             clean_template_copy = template_email.Copy()
