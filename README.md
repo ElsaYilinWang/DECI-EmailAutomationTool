@@ -1,4 +1,4 @@
-Software Requirements Specification: Email Automation Tool v2.9
+Software Requirements Specification: Email Automation Tool v1.3
 1. Introduction
 This document outlines the requirements for a desktop application designed to automate and streamline the process of sending batch emails using Microsoft Outlook. The application provides a user-friendly, modern interface for bulk-managing recipient lists and sending perfectly formatted emails by using an Outlook draft as a template. The intended users are employees who need to send standardized, richly formatted communications to multiple recipients efficiently and with fewer errors.
 
@@ -42,11 +42,11 @@ The application integrates with the user's locally installed Microsoft Outlook c
 
 Before sending, a confirmation dialog shall display the final parsed list of CC'd email addresses and require user confirmation.
 
-Upon confirmation, the application will find the draft in Outlook by its subject and send a copy to each recipient. This copy includes all original formatting and attachments.
+Upon confirmation, the application will find the draft in Outlook by its subject and send a perfect copy to each recipient. This copy includes all original formatting, embedded images, and attachments.
 
 Data Persistence:
 
-All user-entered text will be automatically saved to a local email_data.json file, stored in the user's AppData folder.
+All user-entered text will be automatically saved to a local email_data.json file, stored in the user's AppData folder to avoid permission errors.
 
 System Logging:
 

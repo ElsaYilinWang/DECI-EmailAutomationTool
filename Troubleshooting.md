@@ -1,78 +1,101 @@
-### **FAQ & Troubleshooting Guide**
+FAQ & Troubleshooting Guide
+This guide helps solve common issues when running the Email Automation Tool, from initial setup to sending emails. It is organized into sections for end-users of the installed application and for developers working with the source code.
 
-This guide helps solve common issues when running the Python Email Automation Tool on a new computer, especially errors like `ModuleNotFoundError: No module named 'win32com'` or the app failing to detect your Outlook account.
+Section 1: For End-Users (After Installing the .exe)
+Issue: "File contains a virus or potentially unwanted software"
+Symptom: When you run the downloaded setup.exe, Windows Defender blocks it.
 
-#### **Primary Issue: The app fails to start or can't find Outlook.**
+Cause: This is a false positive. Because the installer is from an individual developer and not "code-signed" (an expensive verification process), security software is extra cautious. The file is safe.
 
-When you encounter errors, follow these steps in order. **Step 1 solves the problem over 90% of the time.**
+Solution: Add an exclusion for the installer file in Windows Security.
 
-### **Step 1: Check Your Virtual Environment (Most Common Fix)**
+Open Windows Security > Virus & threat protection.
 
-Modern Python projects use virtual environments to keep their required packages separate from the main system. If the environment isn't active, the script can't find the packages it needs.
+Click Manage settings > Add or remove exclusions.
 
-**Symptom:** You open a new terminal, run `python email_app.py`, and immediately get `ModuleNotFoundError`.
+Click + Add an exclusion, select File, and choose the downloaded setup file.
 
-**Solution:** You must create and activate the virtual environment for your project folder.
+Issue: App crashes on launch with ModuleNotFoundError: pythonjsonlogger
+Symptซom: You successfully install the app, but it crashes immediately upon launching.
 
-1.  **Open your terminal** and navigate to your project folder:
-    ```bash
-    cd C:\Users\ElsaWang\Documents\DECI-EmailAutomationTool
-    ```
+Cause: This was a build error in versions before v1.3 where a required library was not included in the installer.
 
-2.  **Create a new virtual environment.** (You only need to do this once per machine).
-    ```bash
-    python -m venv .venv
-    ```
+Solution: This has been permanently fixed. Ensure you have downloaded and installed the latest version (v1.3 or newer) from the GitHub Releases page.
 
-3.  **Activate the environment.** (You must do this every time you open a new terminal for this project).
-    ```bash
-    .\.venv\Scripts\activate
-    ```
-    Your terminal prompt should now start with `(.venv)`.
+Issue: App requires "Run as administrator" and then can't find Outlook
+Symptom: The app shows a "permission denied" error when run normally. When you "Run as administrator," it opens but then fails to detect your Outlook account.
 
-4.  **Install the required packages *inside* the active environment.**
-    ```bash
-    python -m pip install pywin32
-    ```
+Cause: This occurred with older versions (before v1.2) that incorrectly tried to save data to a protected system folder. This created a privilege mismatch between the app and Outlook.
 
-5.  **Run the app.**
-    ```bash
-    python email_app.py
-    ```
+Solution: This has been permanently fixed. The latest version correctly saves data to the proper user folder (AppData) and does not require administrator rights to run.
 
-### **Step 2: Check for a "Bitness" Mismatch**
+Issue: "Template Not Found" Error
+Symptom: The application shows an error saying it could not find the draft with the specified subject.
 
-For the script to work, your Python installation and your Microsoft Office/Outlook installation **must both be 64-bit or both be 32-bit.**
+Solution:
 
-**Symptom:** The virtual environment is active and `pywin32` is installed, but the app still reports "Outlook not running or account not found."
+Exact Subject Match: The subject in the app must be an exact match to the draft's subject, including capitalization and any hidden spaces. Copy and paste the subject from Outlook into the app to be certain.
 
-**Solution:**
+Location: The template must be in the Drafts folder of your default Outlook account (the one shown at the bottom of the app).
 
-1.  **Check Python Bitness:** In your terminal, type `python`. The first line will say `64 bit (AMD64)` or `32 bit`.
-2.  **Check Outlook Bitness:** In Outlook, go to **File > Office Account > About Outlook**. The top line of the pop-up window will state if it is 32-bit or 64-bit.
+Is it still a draft? Make sure you haven't accidentally sent or deleted the draft email.
 
-If they do not match, the easiest solution is to uninstall and reinstall Python with the version that matches your Office installation.
+Issue: "This method can't be used with an inline response mail item" Error
+Symptom: The application shows this error when trying to send emails.
 
-### **Step 3: Run a "Quick Repair" on Microsoft Office**
+Cause: This happens if the draft email was last viewed in Outlook's main reading pane instead of a separate window, which puts it in a read-only state.
 
-Sometimes, the communication components that allow Python to talk to Outlook can be improperly registered in Windows.
+Solution: This bug has been fixed in version v1.3 and newer. Please ensure you have the latest version.
 
-**Symptom:** Bitness matches and the virtual environment is active, but the connection to Outlook still fails.
+Section 2: For Developers (Working with the Source Code)
+Issue: ModuleNotFoundError when running python email_app.py
+Symptom: You open a new terminal, activate the environment, but still get ModuleNotFoundError: No module named 'win32com' or 'pythonjsonlogger'.
 
-**Solution:**
+Cause: The required libraries are not installed inside the virtual environment.
 
-1.  Close Outlook and all other Office apps.
-2.  Go to **Windows Settings > Apps > Installed apps**.
-3.  Find your **Microsoft 365** or **Microsoft Office** installation.
-4.  Click **Modify**.
-5.  Select **Quick Repair** and let the process run.
+Solution: You must activate the virtual environment and then install the packages.
 
-### **Step 4: Check if You're Using "New" Outlook**
+Navigate to the project folder: cd D:\DECI-EmailAutomationTool
 
-The script can only automate the **Classic** desktop version of Outlook. It cannot work with the **"New" Outlook**, which is a web-based application.
+Activate the environment: .\.venv\Scripts\activate
 
-**Symptom:** You have tried all the above steps, and it still fails.
+Install dependencies: python -m pip install pywin32 python-json-logger
 
-**Solution:**
+Run the app: python email_app.py
 
-* Ensure the version of Outlook you are running is the traditional desktop client. If you are using the "New" Outlook (which often has a "New" toggle switch at the top), you must switch back to the classic version for this tool to function.
+Issue: Script works in Command Prompt but not in the VS Code Terminal
+Symptom: The script runs perfectly in an external Command Prompt window, but fails to detect Outlook when run from the terminal inside VS Code.
+
+Cause: The default terminal in VS Code is often PowerShell, which has stricter security policies that can block the script from communicating with Outlook.
+
+Solution: Change VS Code's default terminal to Command Prompt.
+
+In VS Code, press Ctrl + Shift + P to open the Command Palette.
+
+Type and select Terminal: Select Default Profile.
+
+Choose Command Prompt.
+
+Close and reopen the terminal panel in VS Code.
+
+Issue: "Bitness" Mismatch
+Symptom: The environment is active and packages are installed, but the app still reports "Outlook not running or account not found."
+
+Solution: Your Python and Microsoft Office installations must both be 64-bit or both be 32-bit.
+
+Check Python Bitness: In your terminal, type python. The first line will say 64 bit (AMD64) or 32 bit.
+
+Check Outlook Bitness: In Outlook, go to File > Office Account > About Outlook. The top line will state if it is 32-bit or 64-bit.
+
+Issue: Connection to Outlook still fails after all other steps
+Symptom: You've checked everything else, but the connection to Outlook is unreliable.
+
+Solution: Run a Quick Repair on your Microsoft Office installation. This re-registers the communication components between apps.
+
+Close all Office apps.
+
+Go to Windows Settings > Apps > Installed apps.
+
+Find your Microsoft 365 or Microsoft Office installation, click it, and choose Modify.
+
+Select Quick Repair and let the process run.
