@@ -313,7 +313,7 @@ class EmailApp:
             db_log.info("Draft template loaded", extra={'event_type': 'template_found', 'subject': template_subject})
             
             # Create a clean, in-memory copy of the draft *before* the loop.
-            # This avoids issues with the original draft being in a read-only "inline" state.
+            # This is the most robust fix for the "inline response" error.
             clean_template_copy = template_email.Copy()
 
             for i, recipient in enumerate(to_list):
