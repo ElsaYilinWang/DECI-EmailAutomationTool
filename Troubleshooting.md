@@ -16,16 +16,16 @@ Click Manage settings > Add or remove exclusions.
 Click + Add an exclusion, select File, and choose the downloaded setup file.
 
 Issue: App crashes on launch with ModuleNotFoundError: pythonjsonlogger
-Symptซom: You successfully install the app, but it crashes immediately upon launching.
+Symptom: You successfully install the app, but it crashes immediately upon launching.
 
 Cause: This was a build error in versions before v1.3 where a required library was not included in the installer.
 
 Solution: This has been permanently fixed. Ensure you have downloaded and installed the latest version (v1.3 or newer) from the GitHub Releases page.
 
-Issue: App requires "Run as administrator" and then can't find Outlook
-Symptom: The app shows a "permission denied" error when run normally. When you "Run as administrator," it opens but then fails to detect your Outlook account.
+Issue: "Permission Denied" or "Cannot Detect Outlook" after Installation
+Symptom: The app requires you to "Run as administrator" to start, but when you do, it can't find your Outlook account.
 
-Cause: This occurred with older versions (before v1.2) that incorrectly tried to save data to a protected system folder. This created a privilege mismatch between the app and Outlook.
+Cause: This occurred with older versions (before v1.2) that incorrectly tried to save data to a protected system folder.
 
 Solution: This has been permanently fixed. The latest version correctly saves data to the proper user folder (AppData) and does not require administrator rights to run.
 
@@ -38,22 +38,18 @@ Exact Subject Match: The subject in the app must be an exact match to the draft'
 
 Location: The template must be in the Drafts folder of your default Outlook account (the one shown at the bottom of the app).
 
-Is it still a draft? Make sure you haven't accidentally sent or deleted the draft email.
-
 Issue: "This method can't be used with an inline response mail item" Error
 Symptom: The application shows this error when trying to send emails.
 
 Cause: This happens if the draft email was last viewed in Outlook's main reading pane instead of a separate window, which puts it in a read-only state.
 
-Solution: This bug has been fixed in version v1.3 and newer. Please ensure you have the latest version.
+Solution: This bug has been fixed in version v1.4 and newer. Please ensure you have the latest version.
 
 Section 2: For Developers (Working with the Source Code)
 Issue: ModuleNotFoundError when running python email_app.py
-Symptom: You open a new terminal, activate the environment, but still get ModuleNotFoundError: No module named 'win32com' or 'pythonjsonlogger'.
+Symptom: You run the script from a new terminal and get a ModuleNotFoundError.
 
-Cause: The required libraries are not installed inside the virtual environment.
-
-Solution: You must activate the virtual environment and then install the packages.
+Solution: Activate the project's virtual environment and install dependencies first.
 
 Navigate to the project folder: cd D:\DECI-EmailAutomationTool
 
