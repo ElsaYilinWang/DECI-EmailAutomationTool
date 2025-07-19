@@ -7,22 +7,30 @@ import os
 import re
 import logging
 from logging.handlers import RotatingFileHandler
+# This is the library that PyInstaller is failing to find.
 from pythonjsonlogger import jsonlogger
+
+# ==============================================================================
+# PyInstaller "Brute Force" Import Hook
+# ==============================================================================
+# This block is never executed, but it forces PyInstaller's static analysis
+# to recognize and bundle the `pythonjsonlogger` library, which it has been
+# failing to detect automatically or even with the .spec file. This is the
+# definitive fix for the `ModuleNotFoundError` in the final .exe.
+if False:
+    import pythonjsonlogger.jsonlogger
+# ==============================================================================
+
 
 # ==============================================================================
 # PROFESSIONAL APPLICATION DATA PATH SETUP
 # ==============================================================================
-# This ensures that data and log files are stored in the user's local
-# application data folder, which does not require administrator rights to write to.
-# This solves permission errors when the app is installed in "C:\Program Files".
 app_data_base_dir = os.getenv('APPDATA')
 app_data_dir = os.path.join(app_data_base_dir, 'Email-Automation-Tool')
 os.makedirs(app_data_dir, exist_ok=True)
 # ==============================================================================
 
 # --- Setup DUAL Logging System ---
-
-# 1. Human-Readable Plain Text Logger
 text_log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 text_log_file = os.path.join(app_data_dir, 'app_log.log')
 text_handler = RotatingFileHandler(text_log_file, mode='a', maxBytes=1*1024*1024, 
@@ -30,7 +38,6 @@ text_handler = RotatingFileHandler(text_log_file, mode='a', maxBytes=1*1024*1024
 text_handler.setFormatter(text_log_formatter)
 text_handler.setLevel(logging.INFO)
 
-# 2. Structured JSON Logger (for database ingestion)
 json_log_formatter = jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 json_log_file = os.path.join(app_data_dir, 'app_log.jsonl')
 json_handler = RotatingFileHandler(json_log_file, mode='a', maxBytes=5*1024*1024, 
@@ -38,7 +45,6 @@ json_handler = RotatingFileHandler(json_log_file, mode='a', maxBytes=5*1024*1024
 json_handler.setFormatter(json_log_formatter)
 json_handler.setLevel(logging.INFO)
 
-# Create logger instances and add the respective handlers
 app_log = logging.getLogger('text_log')
 app_log.setLevel(logging.INFO)
 app_log.addHandler(text_handler)
@@ -312,8 +318,6 @@ class EmailApp:
             app_log.info("Successfully found draft template.")
             db_log.info("Draft template loaded", extra={'event_type': 'template_found', 'subject': template_subject})
             
-            # Create a clean, in-memory copy of the draft *before* the loop.
-            # This is the most robust fix for the "inline response" error.
             clean_template_copy = template_email.Copy()
 
             for i, recipient in enumerate(to_list):
@@ -323,7 +327,6 @@ class EmailApp:
                     db_log.warning("User cancelled sending mid-batch", extra={'event_type': 'send_cancelled_mid_batch', 'emails_sent': i})
                     break
                 
-                # Now, create a copy *of the clean copy* for each recipient.
                 new_mail = clean_template_copy.Copy()
                 new_mail.To = recipient
                 new_mail.CC = cc_list_str
