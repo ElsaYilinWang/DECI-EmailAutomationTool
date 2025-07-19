@@ -1,4 +1,4 @@
-Software Requirements Specification: Email Automation Tool v1.4
+Software Requirements Specification: Email Automation Tool v1.7
 1. Introduction
 This document outlines the requirements for a desktop application designed to automate and streamline the process of sending batch emails using Microsoft Outlook. The application provides a user-friendly, modern interface for bulk-managing recipient lists and sending perfectly formatted emails by using an Outlook draft as a template. The intended users are employees who need to send standardized, richly formatted communications to multiple recipients efficiently and with fewer errors.
 

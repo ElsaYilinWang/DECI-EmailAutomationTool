@@ -36,18 +36,18 @@ Create a new file named `setup_script.iss` in your project folder and paste the 
 
 ```pascal
 ; Inno Setup Script for Email Automation Tool
-
+    
 [Setup]
 AppId={{a12d6ee9-3451-4c8f-a59c-a3dab4434506}}
 AppName=Email Automation Tool
-AppVersion=1.4
+AppVersion=1.7
 AppPublisher=Yilin (Elsa) Wang
 DefaultDirName={autopf}\Email-Automation-Tool
 DefaultGroupName=Email-Automation-Tool
 AllowNoIcons=yes
 LicenseFile=license.txt
 OutputDir=Installer
-OutputBaseFilename=EmailAutomationTool_Setup_v1.4
+OutputBaseFilename=EmailAutomationTool_Setup_v1.7
 SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes
@@ -72,7 +72,7 @@ Filename: "{app}\email_app.exe"; Description: "{cm:LaunchProgram,Email Automatio
 
 ---
 
-### **Section 2: The Build & Compile Workflow (For New Versions)**
+### **Section 2: The "Deep Clean" Build Workflow (For New Versions)**
 
 Follow these steps every time you update your `email_app.py` script and want to release a new version.
 
@@ -80,6 +80,12 @@ Follow these steps every time you update your `email_app.py` script and want to 
 Before starting a new build, it's crucial to delete old build files to prevent errors. Delete the following folders from your project directory if they exist:
 * `build`
 * `dist`
+
+It's also good practice to clear the PyInstaller cache to ensure a completely fresh build. Open a terminal and run:
+```bash
+rmdir /s /q "%APPDATA%\pyinstaller"
+```
+(It's okay if this command reports that the file cannot be found).
 
 #### **Step 2: Re-bundle the `.exe`**
 1.  Activate your virtual environment (`.\.venv\Scripts\activate`).
@@ -95,4 +101,4 @@ Before starting a new build, it's crucial to delete old build files to prevent e
 3.  If you're creating a new version, remember to update the `AppVersion` and `OutputBaseFilename` in the script.
 4.  Go to **Build > Compile**.
 
-Your new, final installer (e.g., `EmailAutomationTool_Setup_v1.4.exe`) will be created in the `Installer` folder, ready for release.
+Your new, final installer (e.g., `EmailAutomationTool_Setup_v1.7.exe`) will be created in the `Installer` folder, ready for release.
