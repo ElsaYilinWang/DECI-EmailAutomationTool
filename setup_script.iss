@@ -4,14 +4,14 @@
 ; NOTE: The value of AppId uniquely identifies this application.
 AppId={{a12d6ee9-3451-4c8f-a59c-a3dab4434506}}
 AppName=Email Automation Tool
-AppVersion=1.5
+AppVersion=1.6
 AppPublisher=Yilin (Elsa) Wang
 DefaultDirName={autopf}\Email-Automation-Tool
 DefaultGroupName=Email-Automation-Tool
 AllowNoIcons=yes
 LicenseFile=license.txt
 OutputDir=Installer
-OutputBaseFilename=EmailAutomationTool_Setup_v1.5
+OutputBaseFilename=EmailAutomationTool_Setup_v1.6
 SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes
