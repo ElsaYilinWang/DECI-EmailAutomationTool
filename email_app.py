@@ -252,6 +252,7 @@ class EmailApp(ttk.Window):
 
 
     def on_closing(self):
+        self.log_message("Application closed.") # add closing message
         self.save_state()
         self.destroy()
 
