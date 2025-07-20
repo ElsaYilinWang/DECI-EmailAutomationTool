@@ -1,35 +1,28 @@
-; Inno Setup Script for Email Automation Tool
+; setup_script.iss
 
 [Setup]
-; NOTE: The value of AppId uniquely identifies this application.
-AppId={{a12d6ee9-3451-4c8f-a59c-a3dab4434506}}
 AppName=Email Automation Tool
-AppVersion=1.7
-AppPublisher=Yilin (Elsa) Wang
-DefaultDirName={autopf}\Email-Automation-Tool
-DefaultGroupName=Email-Automation-Tool
-AllowNoIcons=yes
-LicenseFile=license.txt
-OutputDir=Installer
-OutputBaseFilename=EmailAutomationTool_Setup_v1.7
-SetupIconFile=icon.ico
-Compression=lzma
+; Update the version number to 1.8
+AppVersion=1.8
+DefaultDirName={autopf}\DECI Email Automation Tool
+DefaultGroupName=DECI Email Automation Tool
+UninstallDisplayIcon={app}\EmailAutomationTool.exe
+Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-
-[Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
-
-[Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+OutputBaseFilename=EmailAutomationTool_Setup_v1.8
+SetupIconFile=app_icon.ico
+UninstallFilesDir={app}
 
 [Files]
-; This points to the .exe you created with PyInstaller.
-Source: "dist\email_app.exe"; DestDir: "{app}"; Flags: ignoreversion
+; This now points to the correct folder created by the .spec file
+Source: "dist\EmailAutomationTool\EmailAutomationTool.exe"; DestDir: "{app}"
+; Include all other necessary files from the dist folder
+Source: "dist\EmailAutomationTool\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Email Automation Tool"; Filename: "{app}\email_app.exe"
-Name: "{autodesktop}\Email Automation Tool"; Filename: "{app}\email_app.exe"; Tasks: desktopicon
+Name: "{group}\Email Automation Tool"; Filename: "{app}\EmailAutomationTool.exe"
+Name: "{autodesktop}\Email Automation Tool"; Filename: "{app}\EmailAutomationTool.exe"
 
 [Run]
-Filename: "{app}\email_app.exe"; Description: "{cm:LaunchProgram,Email Automation Tool}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\EmailAutomationTool.exe"; Description: "Launch application"; Flags: nowait postinstall skipifsilent
