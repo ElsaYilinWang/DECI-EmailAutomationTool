@@ -43,7 +43,7 @@ class EmailApp(ttk.Window):
         
         self.title(APP_NAME)
         # FIX: Increased window height to make buttons visible on launch
-        self.geometry("650x750") 
+        self.geometry("650x800") 
 
         # --- Variables ---
         self.sender_email_var = tk.StringVar()
