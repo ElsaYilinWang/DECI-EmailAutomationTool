@@ -39,7 +39,6 @@ if not logger.handlers:
 
 class EmailApp(ttk.Window):
     def __init__(self):
-        # Use ttkbootstrap Window with the 'litera' theme
         super().__init__(themename="litera")
         
         self.title(APP_NAME)
@@ -48,7 +47,8 @@ class EmailApp(ttk.Window):
         # --- Variables ---
         self.sender_email_var = tk.StringVar()
         self.subject_var = tk.StringVar()
-        self.default_cc_var = tk.StringVar(value="qa.team@deci-ltd.com")
+        # FIX 1: Changed default CC email
+        self.default_cc_var = tk.StringVar(value="mro@deci-ltd.com")
 
         # --- Main Frame ---
         main_frame = ttk.Frame(self, padding=(20, 20))
@@ -125,6 +125,8 @@ class EmailApp(ttk.Window):
             self.subject_var.set("")
             self.to_text.delete("1.0", tk.END)
             self.cc_text.delete("1.0", tk.END)
+            # Add back the default CC after clearing
+            self.cc_text.insert("1.0", self.default_cc_var.get())
             self.log_message("Input fields cleared by user.")
 
     def review_list(self):
@@ -181,13 +183,12 @@ class EmailApp(ttk.Window):
                     messagebox.showwarning("Warning", f"Sender email '{sender_email_str}' not found in Outlook. The default account will be used instead.")
                     self.log_message(f"Warning: Sender email '{sender_email_str}' not found. Using default account.", 'warning')
             
+            # FIX 2: More robust way to find the draft email
             drafts_folder = namespace.GetDefaultFolder(16)
             draft_item = None
             for item in drafts_folder.Items:
                 if item.Subject == subject:
-                    if hasattr(item, 'Display'): item.Display()
-                    if hasattr(item, 'Close'): item.Close(0)
-                    draft_item = outlook.ActiveInspector().CurrentItem
+                    draft_item = item  # Found it!
                     break
             
             if not draft_item:
@@ -221,7 +222,7 @@ class EmailApp(ttk.Window):
             "sender_email": self.sender_email_var.get(),
             "subject": self.subject_var.get(),
             "to_list": self.to_text.get("1.0", tk.END),
-            "cc_list": self.cc_text.get("1.0", tk.END)
+            "cc_list": self.cc_text.get("1.0", tk.END).strip() # Strip whitespace when saving
         }
         os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
         with open(CONFIG_FILE, 'w') as f:
@@ -229,6 +230,7 @@ class EmailApp(ttk.Window):
         self.log_message("Application state saved.")
 
     def load_state(self):
+        # FIX 1: Logic to load state and apply default CC
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, 'r') as f:
                 try:
@@ -236,10 +238,23 @@ class EmailApp(ttk.Window):
                     self.sender_email_var.set(state.get("sender_email", ""))
                     self.subject_var.set(state.get("subject", ""))
                     self.to_text.insert("1.0", state.get("to_list", ""))
-                    self.cc_text.insert("1.0", state.get("cc_list", ""))
+                    
+                    cc_list = state.get("cc_list", "")
+                    # If saved CC list is empty, use the default. Otherwise, use saved.
+                    if not cc_list:
+                        self.cc_text.insert("1.0", self.default_cc_var.get())
+                    else:
+                        self.cc_text.insert("1.0", cc_list)
+                        
                     self.log_message("Application state loaded.")
                 except json.JSONDecodeError:
                     self.log_message("Warning: Could not decode JSON from config file.", 'warning')
+                    # If config is corrupt, load default CC
+                    self.cc_text.insert("1.0", self.default_cc_var.get())
+        else:
+            # If no config file exists (first run), load default CC
+            self.cc_text.insert("1.0", self.default_cc_var.get())
+
 
     def on_closing(self):
         self.save_state()
