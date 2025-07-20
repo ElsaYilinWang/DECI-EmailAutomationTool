@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 import win32com.client
 import os
 import json
@@ -35,62 +37,67 @@ if not logger.handlers:
     logger.addHandler(json_log_handler)
 
 
-class EmailApp(tk.Tk):
+class EmailApp(ttk.Window):
     def __init__(self):
-        super().__init__()
+        # Use ttkbootstrap Window with the 'litera' theme
+        super().__init__(themename="litera")
+        
         self.title(APP_NAME)
         self.geometry("650x700")
-        self.configure(bg="#f0f0f0")
 
         # --- Variables ---
         self.sender_email_var = tk.StringVar()
         self.subject_var = tk.StringVar()
-        self.default_cc_var = tk.StringVar(value="qa.team@deci-ltd.com") # Default CC
+        self.default_cc_var = tk.StringVar(value="qa.team@deci-ltd.com")
 
         # --- Main Frame ---
-        main_frame = tk.Frame(self, bg="#f0f0f0", padx=20, pady=20)
+        main_frame = ttk.Frame(self, padding=(20, 20))
         main_frame.pack(fill="both", expand=True)
 
-        # --- Sender and Subject Section ---
-        header_frame = tk.Frame(main_frame, bg="#f0f0f0")
-        header_frame.pack(fill="x", pady=(0, 15))
+        # --- Configuration Section ---
+        config_frame = ttk.LabelFrame(main_frame, text="Configuration", padding=(15, 10))
+        config_frame.pack(fill="x", pady=(0, 15))
+        config_frame.grid_columnconfigure(1, weight=1)
+
+        ttk.Label(config_frame, text="Sender's Email:", bootstyle="default").grid(row=0, column=0, sticky="w", padx=(0, 10), pady=(5,5))
+        self.sender_entry = ttk.Entry(config_frame, textvariable=self.sender_email_var, bootstyle="default")
+        self.sender_entry.grid(row=0, column=1, sticky="ew")
         
-        # NEW: Sender's Email Field
-        tk.Label(header_frame, text="Sender's Email (leave blank for default):", font=("Segoe UI", 10, "bold"), bg="#f0f0f0").pack(fill="x")
-        self.sender_entry = tk.Entry(header_frame, textvariable=self.sender_email_var, font=("Segoe UI", 10), relief="solid", bd=1)
-        self.sender_entry.pack(fill="x", pady=(2, 10))
+        ttk.Label(config_frame, text="(leave blank for default)", font="-size 8").grid(row=1, column=1, sticky="w")
 
-        tk.Label(header_frame, text="Subject of Draft Email:", font=("Segoe UI", 10, "bold"), bg="#f0f0f0").pack(fill="x")
-        self.subject_entry = tk.Entry(header_frame, textvariable=self.subject_var, font=("Segoe UI", 10), relief="solid", bd=1)
-        self.subject_entry.pack(fill="x", pady=(2, 0))
+        ttk.Label(config_frame, text="Draft Subject:", bootstyle="default").grid(row=2, column=0, sticky="w", padx=(0, 10), pady=(15,5))
+        self.subject_entry = ttk.Entry(config_frame, textvariable=self.subject_var, bootstyle="default")
+        self.subject_entry.grid(row=2, column=1, sticky="ew", pady=(15,5))
 
-        # --- Email Lists Section ---
-        lists_frame = tk.Frame(main_frame, bg="#f0f0f0")
-        lists_frame.pack(fill="both", expand=True)
-        lists_frame.grid_columnconfigure(0, weight=1)
-        lists_frame.grid_columnconfigure(1, weight=1)
+
+        # --- Recipients Section ---
+        recipients_frame = ttk.LabelFrame(main_frame, text="Recipients", padding=(15, 10))
+        recipients_frame.pack(fill="both", expand=True)
+        recipients_frame.grid_columnconfigure(0, weight=1)
+        recipients_frame.grid_columnconfigure(1, weight=1)
+        recipients_frame.grid_rowconfigure(1, weight=1)
 
         # 'To' List
-        tk.Label(lists_frame, text="To:", font=("Segoe UI", 10, "bold"), bg="#f0f0f0").grid(row=0, column=0, sticky="w")
-        self.to_text = scrolledtext.ScrolledText(lists_frame, height=15, width=35, font=("Segoe UI", 10), relief="solid", bd=1)
+        ttk.Label(recipients_frame, text="To:", bootstyle="default").grid(row=0, column=0, sticky="w", pady=(0,5))
+        self.to_text = scrolledtext.ScrolledText(recipients_frame, height=15, width=35, font=("Segoe UI", 10), relief="solid", bd=1)
         self.to_text.grid(row=1, column=0, sticky="nsew", padx=(0, 5))
 
         # 'Cc' List
-        tk.Label(lists_frame, text="Cc:", font=("Segoe UI", 10, "bold"), bg="#f0f0f0").grid(row=0, column=1, sticky="w", padx=(5, 0))
-        self.cc_text = scrolledtext.ScrolledText(lists_frame, height=15, width=35, font=("Segoe UI", 10), relief="solid", bd=1)
+        ttk.Label(recipients_frame, text="Cc:", bootstyle="default").grid(row=0, column=1, sticky="w", padx=(5, 0), pady=(0,5))
+        self.cc_text = scrolledtext.ScrolledText(recipients_frame, height=15, width=35, font=("Segoe UI", 10), relief="solid", bd=1)
         self.cc_text.grid(row=1, column=1, sticky="nsew", padx=(5, 0))
 
         # --- Buttons Section ---
-        button_frame = tk.Frame(main_frame, bg="#f0f0f0")
+        button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill="x", pady=(15, 0))
 
-        self.send_button = tk.Button(button_frame, text="Send in Batch", command=self.send_emails, font=("Segoe UI", 10, "bold"), bg="#0078d4", fg="white", relief="flat", padx=10, pady=5)
+        self.send_button = ttk.Button(button_frame, text="Send in Batch", command=self.send_emails, bootstyle="primary")
         self.send_button.pack(side="right", padx=(5, 0))
 
-        self.clear_button = tk.Button(button_frame, text="Clear", command=self.clear_fields, font=("Segoe UI", 10), bg="#e0e0e0", relief="flat", padx=10, pady=5)
+        self.clear_button = ttk.Button(button_frame, text="Clear", command=self.clear_fields, bootstyle="secondary-outline")
         self.clear_button.pack(side="right", padx=(5, 0))
         
-        self.review_button = tk.Button(button_frame, text="Review List", command=self.review_list, font=("Segoe UI", 10), bg="#e0e0e0", relief="flat", padx=10, pady=5)
+        self.review_button = ttk.Button(button_frame, text="Review List", command=self.review_list, bootstyle="secondary-outline")
         self.review_button.pack(side="right")
 
         # --- Load and Save ---
@@ -109,10 +116,8 @@ class EmailApp(tk.Tk):
 
     def get_emails_from_text(self, text_widget):
         text_content = text_widget.get("1.0", tk.END)
-        # Regex to find email addresses
         email_regex = r'[\w\.-]+@[\w\.-]+'
         emails = re.findall(email_regex, text_content)
-        # Clean up and remove duplicates
         return sorted(list(set(email.strip() for email in emails if email.strip())))
 
     def clear_fields(self):
@@ -120,7 +125,6 @@ class EmailApp(tk.Tk):
             self.subject_var.set("")
             self.to_text.delete("1.0", tk.END)
             self.cc_text.delete("1.0", tk.END)
-            # Do not clear the sender email, as it's often reused
             self.log_message("Input fields cleared by user.")
 
     def review_list(self):
@@ -145,7 +149,6 @@ class EmailApp(tk.Tk):
             messagebox.showerror("Error", "The 'To' list is empty. Please provide at least one recipient.")
             return
 
-        # --- CC Confirmation ---
         default_cc = self.default_cc_var.get()
         if default_cc and default_cc not in cc_emails:
             if messagebox.askyesno("Confirm CC", f"The default CC '{default_cc}' is missing. Do you want to add it?"):
@@ -167,7 +170,6 @@ class EmailApp(tk.Tk):
             outlook = win32com.client.Dispatch("Outlook.Application")
             namespace = outlook.GetNamespace("MAPI")
             
-            # --- Get Sending Account ---
             sender_email_str = self.sender_email_var.get().strip()
             sending_account = None
             if sender_email_str:
@@ -179,15 +181,12 @@ class EmailApp(tk.Tk):
                     messagebox.showwarning("Warning", f"Sender email '{sender_email_str}' not found in Outlook. The default account will be used instead.")
                     self.log_message(f"Warning: Sender email '{sender_email_str}' not found. Using default account.", 'warning')
             
-            # --- Find Draft Email ---
-            drafts_folder = namespace.GetDefaultFolder(16) # 16 is the constant for the Drafts folder
+            drafts_folder = namespace.GetDefaultFolder(16)
             draft_item = None
             for item in drafts_folder.Items:
                 if item.Subject == subject:
-                    draft_item = item
-                    # This is a robust way to handle both opened (inline) and closed drafts
                     if hasattr(item, 'Display'): item.Display()
-                    if hasattr(item, 'Close'): item.Close(0) # olDiscard
+                    if hasattr(item, 'Close'): item.Close(0)
                     draft_item = outlook.ActiveInspector().CurrentItem
                     break
             
@@ -198,14 +197,12 @@ class EmailApp(tk.Tk):
 
             self.log_message(f"Starting batch send. Subject: '{subject}'. To: {len(to_emails)}. Cc: {len(cc_emails)}.")
 
-            # --- Loop and Send ---
             for recipient in to_emails:
                 new_mail = draft_item.Copy()
                 new_mail.To = recipient
                 if cc_string:
                     new_mail.CC = cc_string
                 
-                # Set the sending account if one was found
                 if sending_account:
                     new_mail.SendUsingAccount = sending_account
                 
