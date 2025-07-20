@@ -11,7 +11,7 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 OutputBaseFilename=EmailAutomationTool_Setup_v1.8
-SetupIconFile=app_icon.ico
+SetupIconFile=icon.ico
 UninstallFilesDir={app}
 
 [Files]
