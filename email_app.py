@@ -42,12 +42,12 @@ class EmailApp(ttk.Window):
         super().__init__(themename="litera")
         
         self.title(APP_NAME)
-        self.geometry("650x700")
+        # FIX: Increased window height to make buttons visible on launch
+        self.geometry("650x750") 
 
         # --- Variables ---
         self.sender_email_var = tk.StringVar()
         self.subject_var = tk.StringVar()
-        # FIX 1: Changed default CC email
         self.default_cc_var = tk.StringVar(value="mro@deci-ltd.com")
 
         # --- Main Frame ---
@@ -183,12 +183,11 @@ class EmailApp(ttk.Window):
                     messagebox.showwarning("Warning", f"Sender email '{sender_email_str}' not found in Outlook. The default account will be used instead.")
                     self.log_message(f"Warning: Sender email '{sender_email_str}' not found. Using default account.", 'warning')
             
-            # FIX 2: More robust way to find the draft email
             drafts_folder = namespace.GetDefaultFolder(16)
             draft_item = None
             for item in drafts_folder.Items:
                 if item.Subject == subject:
-                    draft_item = item  # Found it!
+                    draft_item = item
                     break
             
             if not draft_item:
@@ -222,7 +221,7 @@ class EmailApp(ttk.Window):
             "sender_email": self.sender_email_var.get(),
             "subject": self.subject_var.get(),
             "to_list": self.to_text.get("1.0", tk.END),
-            "cc_list": self.cc_text.get("1.0", tk.END).strip() # Strip whitespace when saving
+            "cc_list": self.cc_text.get("1.0", tk.END).strip()
         }
         os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
         with open(CONFIG_FILE, 'w') as f:
@@ -230,7 +229,6 @@ class EmailApp(ttk.Window):
         self.log_message("Application state saved.")
 
     def load_state(self):
-        # FIX 1: Logic to load state and apply default CC
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, 'r') as f:
                 try:
@@ -240,7 +238,6 @@ class EmailApp(ttk.Window):
                     self.to_text.insert("1.0", state.get("to_list", ""))
                     
                     cc_list = state.get("cc_list", "")
-                    # If saved CC list is empty, use the default. Otherwise, use saved.
                     if not cc_list:
                         self.cc_text.insert("1.0", self.default_cc_var.get())
                     else:
@@ -249,10 +246,8 @@ class EmailApp(ttk.Window):
                     self.log_message("Application state loaded.")
                 except json.JSONDecodeError:
                     self.log_message("Warning: Could not decode JSON from config file.", 'warning')
-                    # If config is corrupt, load default CC
                     self.cc_text.insert("1.0", self.default_cc_var.get())
         else:
-            # If no config file exists (first run), load default CC
             self.cc_text.insert("1.0", self.default_cc_var.get())
 
 
