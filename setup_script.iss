@@ -2,7 +2,6 @@
 
 [Setup]
 AppName=Email Automation Tool
-; Update the version number to 1.8
 AppVersion=1.8
 DefaultDirName={autopf}\DECI Email Automation Tool
 DefaultGroupName=DECI Email Automation Tool
@@ -11,8 +10,11 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 OutputBaseFilename=EmailAutomationTool_Setup_v1.8
+; Corrected icon filename
 SetupIconFile=icon.ico
 UninstallFilesDir={app}
+; Ensures the installer saves to the "Installer" folder
+OutputDir=Installer
 
 [Files]
 ; This now points to the correct folder created by the .spec file
