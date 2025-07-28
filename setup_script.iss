@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=Email Automation Tool
-AppVersion=1.8
+AppVersion=1.9
 AppPublisher=Yilin (Elsa) Wang
 DefaultDirName={autopf}\DECI Email Automation Tool
 DefaultGroupName=DECI Email Automation Tool
@@ -10,7 +10,7 @@ UninstallDisplayIcon={app}\EmailAutomationTool.exe
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
-OutputBaseFilename=EmailAutomationTool_Setup_v1.8
+OutputBaseFilename=EmailAutomationTool_Setup_v1.9
 SetupIconFile=icon.ico
 UninstallFilesDir={app}
 OutputDir=Installer
