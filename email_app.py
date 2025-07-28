@@ -10,21 +10,22 @@ import re
 from logging.handlers import RotatingFileHandler
 
 # --- Configuration ---
-APP_NAME = "Email Automation Tool v1.8"
+APP_NAME = "Email Automation Tool v1.9"
 CONFIG_FILE = os.path.join(os.getenv('APPDATA'), 'EmailAutomationTool', 'config.json')
 LOG_DIR = os.path.join(os.getenv('APPDATA'), 'EmailAutomationTool', 'logs')
+# NEW: Path to the external template file
+TEMPLATE_FILE = 'intro_template.html'
+
 
 # --- Setup Logging ---
 os.makedirs(LOG_DIR, exist_ok=True)
 log_file_path = os.path.join(LOG_DIR, 'app_log.log')
 json_log_file_path = os.path.join(LOG_DIR, 'app_log.jsonl')
 
-# Human-readable log
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 log_handler = RotatingFileHandler(log_file_path, maxBytes=1024*1024, backupCount=5)
 log_handler.setFormatter(log_formatter)
 
-# JSON log for database import
 json_log_formatter = logging.Formatter('{"timestamp": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s"}')
 json_log_handler = RotatingFileHandler(json_log_file_path, maxBytes=1024*1024, backupCount=5)
 json_log_handler.setFormatter(json_log_formatter)
@@ -42,19 +43,15 @@ class EmailApp(ttk.Window):
         super().__init__(themename="litera")
         
         self.title(APP_NAME)
-        # FIX: Increased window height to make buttons visible on launch
         self.geometry("650x800") 
 
-        # --- Variables ---
         self.sender_email_var = tk.StringVar()
         self.subject_var = tk.StringVar()
         self.default_cc_var = tk.StringVar(value="mro@deci-ltd.com")
 
-        # --- Main Frame ---
         main_frame = ttk.Frame(self, padding=(20, 20))
         main_frame.pack(fill="both", expand=True)
 
-        # --- Configuration Section ---
         config_frame = ttk.LabelFrame(main_frame, text="Configuration", padding=(15, 10))
         config_frame.pack(fill="x", pady=(0, 15))
         config_frame.grid_columnconfigure(1, weight=1)
@@ -69,25 +66,20 @@ class EmailApp(ttk.Window):
         self.subject_entry = ttk.Entry(config_frame, textvariable=self.subject_var, bootstyle="default")
         self.subject_entry.grid(row=2, column=1, sticky="ew", pady=(15,5))
 
-
-        # --- Recipients Section ---
         recipients_frame = ttk.LabelFrame(main_frame, text="Recipients", padding=(15, 10))
         recipients_frame.pack(fill="both", expand=True)
         recipients_frame.grid_columnconfigure(0, weight=1)
         recipients_frame.grid_columnconfigure(1, weight=1)
         recipients_frame.grid_rowconfigure(1, weight=1)
 
-        # 'To' List
         ttk.Label(recipients_frame, text="To:", bootstyle="default").grid(row=0, column=0, sticky="w", pady=(0,5))
         self.to_text = scrolledtext.ScrolledText(recipients_frame, height=15, width=35, font=("Segoe UI", 10), relief="solid", bd=1)
         self.to_text.grid(row=1, column=0, sticky="nsew", padx=(0, 5))
 
-        # 'Cc' List
         ttk.Label(recipients_frame, text="Cc:", bootstyle="default").grid(row=0, column=1, sticky="w", padx=(5, 0), pady=(0,5))
         self.cc_text = scrolledtext.ScrolledText(recipients_frame, height=15, width=35, font=("Segoe UI", 10), relief="solid", bd=1)
         self.cc_text.grid(row=1, column=1, sticky="nsew", padx=(5, 0))
 
-        # --- Buttons Section ---
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(fill="x", pady=(15, 0))
 
@@ -100,7 +92,6 @@ class EmailApp(ttk.Window):
         self.review_button = ttk.Button(button_frame, text="Review List", command=self.review_list, bootstyle="secondary-outline")
         self.review_button.pack(side="right")
 
-        # --- Load and Save ---
         self.load_state()
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.log_message("Application started.")
@@ -125,20 +116,26 @@ class EmailApp(ttk.Window):
             self.subject_var.set("")
             self.to_text.delete("1.0", tk.END)
             self.cc_text.delete("1.0", tk.END)
-            # Add back the default CC after clearing
             self.cc_text.insert("1.0", self.default_cc_var.get())
             self.log_message("Input fields cleared by user.")
 
     def review_list(self):
         to_emails = self.get_emails_from_text(self.to_text)
         cc_emails = self.get_emails_from_text(self.cc_text)
-
         review_message = f"Valid 'To' Emails ({len(to_emails)}):\n" + "\n".join(to_emails)
         review_message += f"\n\nValid 'Cc' Emails ({len(cc_emails)}):\n" + "\n".join(cc_emails)
-        
         messagebox.showinfo("Review Email Lists", review_message)
 
     def send_emails(self):
+        # --- NEW: Load the intro paragraph from the external file ---
+        try:
+            with open(TEMPLATE_FILE, 'r') as f:
+                intro_paragraph = f.read()
+        except FileNotFoundError:
+            messagebox.showerror("Error", f"Template file not found!\n\nPlease make sure '{TEMPLATE_FILE}' is in the same folder as the application.")
+            self.log_message(f"Error: Template file '{TEMPLATE_FILE}' not found.", 'error')
+            return
+            
         subject = self.subject_var.get().strip()
         if not subject:
             messagebox.showerror("Error", "Subject of the draft email cannot be empty.")
@@ -199,6 +196,10 @@ class EmailApp(ttk.Window):
 
             for recipient in to_emails:
                 new_mail = draft_item.Copy()
+                
+                original_body = new_mail.HTMLBody
+                new_mail.HTMLBody = intro_paragraph + original_body
+                
                 new_mail.To = recipient
                 if cc_string:
                     new_mail.CC = cc_string
@@ -250,9 +251,8 @@ class EmailApp(ttk.Window):
         else:
             self.cc_text.insert("1.0", self.default_cc_var.get())
 
-
     def on_closing(self):
-        self.log_message("Application closed.") # add closing message
+        self.log_message("Application closed.")
         self.save_state()
         self.destroy()
 
